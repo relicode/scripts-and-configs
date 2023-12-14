@@ -2,6 +2,8 @@
 
 # Deps
 
+WORKDIR="$(pwd -P)"
+
 create_dirs() {
   cd "$HOME"
   for DIRNAME in etc opt bin
@@ -9,11 +11,13 @@ create_dirs() {
     DIRPATH="$HOME/$DIRNAME"
     if [ ! -d "$DIRPATH" ]; then mkdir -v "$DIRPATH"; fi
   done
+  cd "$WORKDIR"
 }
 
 install_deps () {
   cd "$HOME"
   apt install tmux git build-essential tree ripgrep curl wget ldnsutils lm-sensors sudo locales-all python3-venv unzip
+  cd "$WORKDIR"
 }
 
 install_docker () {
@@ -39,6 +43,7 @@ install_docker () {
   newgrp docker
   docker run --rm hello-world
   command -v bash && (curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | DIR="$HOME/bin" bash)
+  cd "$WORKDIR"
 }
 
 install_nvim () {
@@ -48,6 +53,7 @@ install_nvim () {
   rm nvim-linux64.tar.gz
   cd "$HOME/bin"
   ln -s "$HOME/opt/nvim-linux64/bin/nvim" ./nvim
+  cd "$WORKDIR"
 }
 
 install_ohmytmux () {
@@ -57,6 +63,7 @@ install_ohmytmux () {
   git clone --depth 1 https://github.com/gpakosz/.tmux "$TMUX_DIR" && \
     cp "$TMUX_DIR/.tmux.conf.local" ./ && \
     ln -s "$TMUX_DIR/.tmux.conf" ./
+  cd "$WORKDIR"
 }
 
 update_bashrc () {
@@ -70,6 +77,7 @@ alias vim="$HOME/bin/nvim"' > sourceme && \
   . sourceme && \
   cat sourceme >> .bashrc && \
   rm sourceme
+  cd "$WORKDIR"
 }
 
 install_nvm () {
@@ -78,11 +86,13 @@ install_nvm () {
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
   nvm i --lts
+  cd "$WORKDIR"
 }
 
 install_nvchad () {
   rm -rf ~/.config/nvim
   rm -rf ~/.local/share/nvim
   git clone https://github.com/NvChad/NvChad ~/.config/nvim --depth 1 && nvim
+  cd "$WORKDIR"
 }
 
