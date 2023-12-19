@@ -1,17 +1,20 @@
 #!/bin/sh
 
-cd "$HOME"
+WORK_DIR="$(dirname "$0")"
+IS_KDE_NEON="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
 
 create_dirs() {
-  cd "$HOME"
-  for DIRNAME in etc opt bin
-  do
-    if [ ! -d "$DIRNAME" ]; then mkdir -v "$DIRNAME"; fi
+  for DIRNAME in etc opt bin; do
+    if [ ! -d "$HOME/$DIRNAME" ]; then mkdir -v "$HOME/$DIRNAME"; fi
   done
 }
 
 install_deps () {
-  apt install -y tmux git build-essential tree ripgrep curl wget ldnsutils lm-sensors sudo locales-all python3-venv unzip
+  if [ "$IS_KDE_NEON" ]; then
+    pkcon install -y tmux git build-essential tree ripgrep curl wget ldnsutils lm-sensors sudo locales-all python3-venv unzip
+  else
+    apt install -y tmux git build-essential tree ripgrep curl wget ldnsutils lm-sensors sudo locales-all python3-venv unzip
+  fi
 }
 
 install_docker () {
@@ -27,9 +30,7 @@ install_docker () {
     "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
   sudo apt-get update
-
   sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
   sudo groupadd docker
   sudo usermod -aG docker $USER
   newgrp docker
@@ -44,7 +45,7 @@ install_nvim () {
   rm nvim-linux64.tar.gz
   cd "$HOME/bin"
   ln -s "$HOME/opt/nvim-linux64/bin/nvim" ./nvim
-  cd "$HOME"
+  cd "$WORK_DIR"
 }
 
 install_ohmytmux () {
@@ -73,12 +74,12 @@ install_nvm () {
   export NVM_DIR="$XDG_CONFIG_HOME/nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-  nvm i --lts
+  nvm i lts/iron
 }
 
 install_nvchad () {
-  rm -rf ~/.config/nvim
-  rm -rf ~/.local/share/nvim
-  git clone https://github.com/NvChad/NvChad ~/.config/nvim --depth 1 && nvim
+  rm -rf "$HOME/.config/nvim"
+  rm -rf "$HOME/.local/share/nvim"
+  git clone https://github.com/NvChad/NvChad "$HOME/.config/nvim" --depth 1 && nvim
 }
 

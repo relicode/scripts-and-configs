@@ -1,8 +1,8 @@
 #!/bin/sh
 
-IS_KDE="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
+IS_KDE_NEON="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
 
-if [ "$IS_KDE" ]; then
+if [ "$IS_KDE_NEON" ]; then
   for CMD in refresh update autoremove; do
     sudo pkcon -y "$CMD"
   done
