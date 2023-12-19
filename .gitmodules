@@ -1,3 +1,6 @@
 [submodule "submodules/ufw-docker"]
 	path = submodules/ufw-docker
 	url = https://github.com/chaifeng/ufw-docker
+[submodule "submodules/oh-my-tmux"]
+	path = submodules/oh-my-tmux
+	url = https://github.com/gpakosz/.tmux

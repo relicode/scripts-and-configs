@@ -49,7 +49,7 @@ install_nvim () {
 }
 
 install_ohmytmux () {
-  TMUX_DIR="$HOME/etc/oh-my-tmux"
+  TMUX_DIR="$WORK_DIR/submodules/oh-my-tmux"
 
   git clone --depth 1 https://github.com/gpakosz/.tmux "$TMUX_DIR" && \
     cp "$TMUX_DIR/.tmux.conf.local" "$HOME/.tmux.conf.local" && \
