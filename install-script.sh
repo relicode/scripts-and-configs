@@ -25,7 +25,7 @@ install_deps () {
 echo install_deps
 
 install_docker () {
-  PKG_CMD remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
+  $PKG_CMD remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
   curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh ./get-docker.sh && rm get-docker.sh
 }
 echo install_docker
