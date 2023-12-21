@@ -5,17 +5,14 @@ RC_FILE="$HOME/.bashrc"
 WORK_DIR="$(pwd -P)"
 
 IS_KDE_NEON="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
-if [ "$IS_KDE_NEON" ]; then
-  PKG_CMD='sudo pkcon'
-else
-  PKG_CMD='sudo apt'
-fi
+if [ "$IS_KDE_NEON" ]; then PKG_CMD='sudo pkcon'; else PKG_CMD='sudo apt'; fi
 
 create_dirs() {
-  for DIRNAME in etc opt bin; do
+  for DIRNAME in opt bin; do
     DIRPATH="$HOME/$DIRNAME"
     if [ ! -d "$DIRPATH" ]; then mkdir -pv "$DIRPATH"; fi
   done
+  cp -v bin/* "$HOME/bin"
 }
 echo create_dirs
 
@@ -75,3 +72,4 @@ install_nvchad () {
 }
 echo install_nvchad
 
+for i in $@; do "$i"; done
