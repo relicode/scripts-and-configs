@@ -13,7 +13,8 @@ fi
 
 create_dirs() {
   for DIRNAME in etc opt bin; do
-    if [ ! -d "$HOME/$DIRNAME" ]; then mkdir -v "$HOME/$DIRNAME"; fi
+    DIRPATH="$HOME/$DIRNAME"
+    if [ ! -d "$DIRPATH" ]; then mkdir -pv "$DIRPATH"; fi
   done
 }
 echo create_dirs
@@ -42,10 +43,7 @@ echo install_nvim
 
 install_ohmytmux () {
   TMUX_DIR="$WORK_DIR/submodules/oh-my-tmux"
-
-  git clone --depth 1 https://github.com/gpakosz/.tmux "$TMUX_DIR" && \
-    cp "$TMUX_DIR/.tmux.conf.local" "$HOME/.tmux.conf.local" && \
-    ln -s "$TMUX_DIR/.tmux.conf" "$HOME/.tmux.conf"
+  ln -s "$TMUX_DIR/.tmux.conf" "$HOME/.tmux.conf" && cp "$TMUX_DIR/.tmux.conf.local" -v "$HOME/.tmux.conf.local"
 }
 echo install_ohmytmux
 
