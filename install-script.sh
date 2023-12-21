@@ -1,10 +1,10 @@
 #!/bin/sh
 
-WORK_DIR="$(pwd -P)"
-IS_KDE_NEON="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
 NODE_NVM_VERSION="lts/iron"
 RC_FILE="$HOME/.bashrc"
+WORK_DIR="$(pwd -P)"
 
+IS_KDE_NEON="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
 if [ "$IS_KDE_NEON" ]; then
   PKG_CMD='sudo pkcon'
 else
