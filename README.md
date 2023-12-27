@@ -10,4 +10,4 @@ or
 
 ## Updating
 
-`git submodule update --remote --merge`
+`git pull --rebase && git submodule update --remote --merge`
