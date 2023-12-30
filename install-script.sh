@@ -1,11 +1,50 @@
 #!/bin/sh
 
-NODE_NVM_VERSION="lts/iron"
-RC_FILE="$HOME/.bashrc"
 WORK_DIR="$(pwd -P)"
+NODE_NVM_VERSION="lts/iron"
+TMUX_DIR="$WORK_DIR/submodules/oh-my-tmux"
+
+# https://stackoverflow.com/questions/2829613/how-do-you-tell-if-a-string-contains-another-string-in-posix-sh
+helper__contains() {
+  string="$1"
+  substring="$2"
+  if [ "${string#*"$substring"}" != "$string" ]; then
+    return 0 # $substring is in $string
+  else
+    return 1 # $substring is not in $string
+  fi
+}
 
 IS_KDE_NEON="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
-if [ "$IS_KDE_NEON" ]; then PKG_CMD='sudo pkcon'; else PKG_CMD='sudo apt'; fi
+
+if [ "$IS_KDE_NEON" ]
+  then
+    PKG_CMD='sudo pkcon'
+  else
+    command -v brew && PKG_CMD='brew' || PKG_CMD='sudo apt'
+fi
+
+case "$SHELL" in
+  *bash)
+    L_SHELL=BASH
+    RC_FILE="$HOME/.bashrc"
+    ALIAS_FILE="$HOME/.bash_aliases"
+    ;;
+  *zsh)
+    L_SHELL=ZSH
+    RC_FILE="$HOME/.zshrc"
+    ALIAS_FILE="$HOME/.zsh_aliases"
+    ;;
+  *sh)
+    L_SHELL=POSIX
+    RC_FILE="$HOME/.profile"
+    ALIAS_FILE="$RC_FILE"
+    ;;
+  *)
+    echo "Couldn't determine shell ($SHELL)"
+    exit 1
+    ;;
+esac
 
 create_dirs() {
   for DIRNAME in opt bin; do
@@ -39,20 +78,17 @@ install_nvim () {
 echo install_nvim
 
 install_ohmytmux () {
-  TMUX_DIR="$WORK_DIR/submodules/oh-my-tmux"
-  ln -s "$TMUX_DIR/.tmux.conf" "$HOME/.tmux.conf" && cp "$TMUX_DIR/.tmux.conf.local" -v "$HOME/.tmux.conf.local"
+  ln -fs "$TMUX_DIR/.tmux.conf" "$HOME/.tmux.conf" && \
+  cp -v "$TMUX_DIR/.tmux.conf.local" "$HOME/.tmux.conf.local"
 }
 echo install_ohmytmux
 
 update_rc_file () {
-  CMD='
-export XDG_CONFIG_HOME="$HOME/.config"
-export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/bin:$PATH"
-export EDITOR="$HOME/bin/nvim"
-alias vim="nvm exec $NODE_NVM_VERSION nvim"'
-  eval "$CMD"
-  echo "$CMD" >> "$RC_FILE"
+  for i in appendix/*; do
+    . "$i"
+  done
+  cat appendix/rcfile >> "$RC_FILE"
+  cat appendix/aliases >> "$ALIAS_FILE"
 }
 echo update_rc_file
 

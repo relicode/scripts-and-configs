@@ -1,0 +1,5 @@
+# <ScriptsAndConfigs>
+alias vim="nvm exec default $HOME/bin/nvim"
+if [ -t 1 ]; then alias cal="ncal -b"; else alias cal="/usr/bin/cal"; fi
+if [ -d "$NVM_DIR" ]; then echo ok; fi
+# </ScriptsAndConfigs>
