@@ -83,14 +83,15 @@ install_ohmytmux () {
 }
 echo install_ohmytmux
 
-update_rc_file () {
-  for i in appendix/*; do
+update_extras () {
+  for i in extras/*; do
     . "$i"
   done
-  cat appendix/rcfile >> "$RC_FILE"
-  cat appendix/aliases >> "$ALIAS_FILE"
+  cat extras/rcfile >> "$RC_FILE"
+  cat extras/aliases >> "$ALIAS_FILE"
+  [ ! -r "$HOME/.gitconfig" ] && cp -v extras/gitconfig "$HOME/.gitconfig"
 }
-echo update_rc_file
+echo update_extras
 
 install_nvm () {
   command -v bash && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash && \
