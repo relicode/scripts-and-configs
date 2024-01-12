@@ -84,11 +84,12 @@ install_ohmytmux () {
 echo install_ohmytmux
 
 update_extras () {
-  for i in extras/*; do
-    . "$i"
+  for i in rcfile aliases; do
+    . "extras/$i"
+    if [ "$i" = "$rcfile" ]; then cat "extras/$i" >> "$RC_FILE"; done
+    if [ "$i" = "$aliases" ]; then cat "extras/$i" >> "$ALIAS_FILE"; done
   done
-  cat extras/rcfile >> "$RC_FILE"
-  cat extras/aliases >> "$ALIAS_FILE"
+
   [ ! -r "$HOME/.gitconfig" ] && cp -v extras/gitconfig "$HOME/.gitconfig"
 }
 echo update_extras
