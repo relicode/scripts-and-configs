@@ -2,11 +2,13 @@
 
 ## Installation:
 
+Main branch
+
 `git clone --recurse-submodules -j8 https://github.com/relicode/scripts-and-configs`
 
-or 
+Development branch
 
-`git clone --recurse-submodules -j8 git@github.com:relicode/scripts-and-configs.git`
+`git clone -b develop --recurse-submodules -j8 git@github.com:relicode/scripts-and-configs.git`
 
 ## Updating
 
