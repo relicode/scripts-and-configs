@@ -85,9 +85,10 @@ echo install_ohmytmux
 
 update_extras () {
   for i in rcfile aliases; do
+    FILE_PATH="extras/$i"
     . "extras/$i"
-    if [ "$i" = "$rcfile" ]; then cat "extras/$i" >> "$RC_FILE"; done
-    if [ "$i" = "$aliases" ]; then cat "extras/$i" >> "$ALIAS_FILE"; done
+    if [ "$i" = "rcfile" ]; then . "$FILE_PATH" && cat "$FILE_PATH" >> "$RC_FILE"; fi
+    if [ "$i" = "aliases" ]; then . "$FILE_PATH" && cat "$FILE_PATH" >> "$ALIAS_FILE"; fi
   done
 
   [ ! -r "$HOME/.gitconfig" ] && cp -v extras/gitconfig "$HOME/.gitconfig"
