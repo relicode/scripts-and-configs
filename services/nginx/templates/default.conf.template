@@ -18,5 +18,8 @@ server {
   error_page 404             /404.html;
   error_page 500 502 503 504 /50x.html;
 
+  charset utf-8;
+  source_charset utf-8;
+
   # location /test-500 { try_files $uri $uri.html; } # Cause a redirect loop to test error page handling.
 }
