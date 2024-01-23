@@ -1,3 +1,3 @@
 #!/bin/sh
 
-docker compose up -d --remove-orphans --force-recreate
+docker compose up --remove-orphans --force-recreate $@
