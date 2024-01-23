@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ $# -lt 1 ]; then echo "Usage: $(basename "$0") <domain> [<domain...>]"; fi
+if [ $# -lt 1 ]; then echo "Usage: $(basename "$0") <domain> [<domain...>]"; exit 1; fi
 
 REAL="$(readlink -f "$0")"
 DIR="$(dirname "$REAL")"
