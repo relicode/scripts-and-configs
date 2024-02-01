@@ -4,7 +4,7 @@ alias dc='docker compose'
 alias l='ls -CF'
 alias la='ls -A'
 alias ll='ls -alF'
-alias vim="nvm exec default $HOME/bin/nvim"
+alias vim="nvm exec default nvim"
 
 if [ -t 1 ]; then alias cal="ncal -b"; else alias cal="/usr/bin/cal"; fi
 

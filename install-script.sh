@@ -85,9 +85,9 @@ echo install_ohmytmux
 
 update_extras () {
   for i in rcfile aliases; do
-    . "extras/$i"
-    if [ "$i" = "$rcfile" ]; then cat "extras/$i" >> "$RC_FILE"; done
-    if [ "$i" = "$aliases" ]; then cat "extras/$i" >> "$ALIAS_FILE"; done
+    FILE_PATH="extras/$i"
+    if [ "$i" = "rcfile" ]; then . "$FILE_PATH" && cat "$FILE_PATH" >> "$RC_FILE"; fi
+    if [ "$i" = "aliases" ]; then . "$FILE_PATH" && cat "$FILE_PATH" >> "$ALIAS_FILE"; fi
   done
 
   [ ! -r "$HOME/.gitconfig" ] && cp -v extras/gitconfig "$HOME/.gitconfig"
@@ -95,10 +95,15 @@ update_extras () {
 echo update_extras
 
 install_nvm () {
+  if [ -z "$XDG_CONFIG_HOME" ]; then
+    echo "Set XDG_CONFIG_HOME first!"
+    return 1
+  fi
+
   command -v bash && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash && \
-  export NVM_DIR="$XDG_CONFIG_HOME/nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+  export NVM_DIR="$XDG_CONFIG_HOME/nvm" && \
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
   nvm i "$NODE_NVM_VERSION"
 }
 echo install_nvm
@@ -106,7 +111,7 @@ echo install_nvm
 install_nvchad () {
   rm -rf "$HOME/.config/nvim"
   rm -rf "$HOME/.local/share/nvim"
-  git clone https://github.com/NvChad/NvChad "$HOME/.config/nvim" --depth 1 && nvim
+  git clone https://github.com/NvChad/NvChad "$HOME/.config/nvim" --depth 1
 }
 echo install_nvchad
 
