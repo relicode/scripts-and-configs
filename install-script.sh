@@ -3,36 +3,7 @@
 WORK_DIR="$(pwd -P)"
 NODE_NVM_VERSION="lts/iron"
 TMUX_DIR="$WORK_DIR/submodules/oh-my-tmux"
-IS_KDE_NEON="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
-
-if [ "$IS_KDE_NEON" ]
-  then
-    PACKAGE_MANAGER='sudo pkcon'
-  else
-    command -v brew 1>/dev/null && PACKAGE_MANAGER='brew' || PACKAGE_MANAGER='sudo apt'
-fi
-
-case "$SHELL" in
-  *bash)
-    L_SHELL=BASH
-    RC_FILE="$HOME/.bashrc"
-    ALIAS_FILE="$HOME/.bash_aliases"
-    ;;
-  *zsh)
-    L_SHELL=ZSH
-    RC_FILE="$HOME/.zshrc"
-    ALIAS_FILE="$HOME/.zsh_aliases"
-    ;;
-  *sh)
-    L_SHELL=POSIX
-    RC_FILE="$HOME/.profile"
-    ALIAS_FILE="$RC_FILE"
-    ;;
-  *)
-    echo "Couldn't determine shell ($SHELL)"
-    exit 1
-    ;;
-esac
+PACKAGE_MANAGER="${PACKAGE_MANAGER:-apt}"
 
 init_dirs() {
   for DIRNAME in opt bin etc; do
@@ -43,7 +14,7 @@ init_dirs() {
 }
 
 install_deps () {
-  $PACKAGE_MANAGER install -y  build-essential curl git ldnsutils lm-sensors locales-all \
+  $PACKAGE_MANAGER install -y build-essential curl git ldnsutils lm-sensors locales-all \
     python3-venv ripgrep sudo tmux tree unzip wget
 }
 
@@ -65,6 +36,17 @@ install_nvim () {
   cd "$HOME/bin"
   ln -s "$HOME/opt/nvim-linux64/bin/nvim" ./nvim
   cd "$WORK_DIR"
+}
+
+NEOVIM_TEMP_DIR='/tmp/neovim'
+compile_nvim () {
+  $PACKAGE_MANAGER install -y ninja-build gettext cmake unzip curl && \
+    git clone https://github.com/neovim/neovim "$NEOVIM_TEMP_DIR" && \
+    cd "$NEOVIM_TEMP_DIR" && \
+    make CMAKE_BUILD_TYPE=RelWithDebInfo && \
+    sudo make install && \
+    cd "$HOME" && \
+    rm -r "$NEOVIM_TEMP_DIR"
 }
 
 install_extras () {
@@ -118,6 +100,7 @@ display_help () {
     echo install_docker
     echo install_ohmytmux
     echo install_nvim
+    echo compile_nvim
     echo install_extras
     echo install_nvm
     echo install_python_venv
@@ -135,9 +118,8 @@ fi
 
 for COMMAND in $@; do
   case "$COMMAND" in
-    init_dirs|install_deps|install_docker|install_ohmytmux|install_nvim|install_extras|install_nvm|install_python_venv|install_nvchad|update_submodules)
+    init_dirs|install_deps|install_docker|install_ohmytmux|install_nvim|compile_nvim|install_extras|install_nvm|install_python_venv|install_nvchad|update_submodules)
       $COMMAND || display_help "$COMMAND" "Failed running command "$COMMAND""
-      break
       ;;
     *)
       display_help "$COMMAND"
