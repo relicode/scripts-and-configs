@@ -3,25 +3,13 @@
 WORK_DIR="$(pwd -P)"
 NODE_NVM_VERSION="lts/iron"
 TMUX_DIR="$WORK_DIR/submodules/oh-my-tmux"
-
-# https://stackoverflow.com/questions/2829613/how-do-you-tell-if-a-string-contains-another-string-in-posix-sh
-helper__contains() {
-  string="$1"
-  substring="$2"
-  if [ "${string#*"$substring"}" != "$string" ]; then
-    return 0 # $substring is in $string
-  else
-    return 1 # $substring is not in $string
-  fi
-}
-
 IS_KDE_NEON="$(lsb_release -a 2>/dev/null | grep 'KDE neon' 1>/dev/null && printf true)"
 
 if [ "$IS_KDE_NEON" ]
   then
-    PKG_CMD='sudo pkcon'
+    PACKAGE_MANAGER='sudo pkcon'
   else
-    command -v brew && PKG_CMD='brew' || PKG_CMD='sudo apt'
+    command -v brew 1>/dev/null && PACKAGE_MANAGER='brew' || PACKAGE_MANAGER='sudo apt'
 fi
 
 case "$SHELL" in
@@ -46,25 +34,28 @@ case "$SHELL" in
     ;;
 esac
 
-create_dirs() {
-  for DIRNAME in opt bin; do
+init_dirs() {
+  for DIRNAME in opt bin etc; do
     DIRPATH="$HOME/$DIRNAME"
     if [ ! -d "$DIRPATH" ]; then mkdir -pv "$DIRPATH"; fi
-  done
+  done || exit 1
   cp -v bin/* "$HOME/bin"
 }
-echo create_dirs
 
 install_deps () {
-  $PKG_CMD install -y tmux git build-essential tree ripgrep curl wget ldnsutils lm-sensors sudo locales-all python3-venv unzip
+  $PACKAGE_MANAGER install -y  build-essential curl git ldnsutils lm-sensors locales-all \
+    python3-venv ripgrep sudo tmux tree unzip wget
 }
-echo install_deps
 
 install_docker () {
-  $PKG_CMD remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
+  $PACKAGE_MANAGER remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
   curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh ./get-docker.sh && rm get-docker.sh
 }
-echo install_docker
+
+install_ohmytmux () {
+  ln -fs "$TMUX_DIR/.tmux.conf" "$HOME/.tmux.conf" && \
+  cp -v "$TMUX_DIR/.tmux.conf.local" "$HOME/.tmux.conf.local"
+}
 
 install_nvim () {
   cd "$HOME/opt"
@@ -75,24 +66,10 @@ install_nvim () {
   ln -s "$HOME/opt/nvim-linux64/bin/nvim" ./nvim
   cd "$WORK_DIR"
 }
-echo install_nvim
 
-install_ohmytmux () {
-  ln -fs "$TMUX_DIR/.tmux.conf" "$HOME/.tmux.conf" && \
-  cp -v "$TMUX_DIR/.tmux.conf.local" "$HOME/.tmux.conf.local"
+install_extras () {
+  cp -v "extras/."* "$HOME"
 }
-echo install_ohmytmux
-
-update_extras () {
-  for i in rcfile aliases; do
-    FILE_PATH="extras/$i"
-    if [ "$i" = "rcfile" ]; then . "$FILE_PATH" && cat "$FILE_PATH" >> "$RC_FILE"; fi
-    if [ "$i" = "aliases" ]; then . "$FILE_PATH" && cat "$FILE_PATH" >> "$ALIAS_FILE"; fi
-  done
-
-  [ ! -r "$HOME/.gitconfig" ] && cp -v extras/gitconfig "$HOME/.gitconfig"
-}
-echo update_extras
 
 install_nvm () {
   if [ -z "$XDG_CONFIG_HOME" ]; then
@@ -100,19 +77,58 @@ install_nvm () {
     return 1
   fi
 
-  command -v bash && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash && \
-  export NVM_DIR="$XDG_CONFIG_HOME/nvm" && \
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+  export NVM_DIR="$XDG_CONFIG_HOME/nvm"
+
+  command -v bash 1>/dev/null && \
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash && \
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && \
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
   nvm i "$NODE_NVM_VERSION"
 }
-echo install_nvm
+
+install_python_venv () {
+  if [ ! -d "$HOME/etc/python3-venv" ]; then
+    command python3 -m venv -h 1>/dev/null || exit 1
+    python3 -m venv "$HOME/etc/python3-venv"
+  fi
+}
 
 install_nvchad () {
   rm -rf "$HOME/.config/nvim"
   rm -rf "$HOME/.local/share/nvim"
   git clone https://github.com/NvChad/NvChad "$HOME/.config/nvim" --depth 1
 }
-echo install_nvchad
 
-for i in $@; do "$i"; done
+display_help () {
+  echo
+  if [ -z "$2" ]; then
+    echo "Invalid command: '$1' - valid commands are:"
+    echo init_dirs
+    echo install_deps
+    echo install_docker
+    echo install_ohmytmux
+    echo install_nvim
+    echo install_extras
+    echo install_nvm
+    echo install_python_venv
+    echo install_nvchad
+  else
+    echo "$2"
+  fi
+  exit 1
+}
+
+if [ "$#" -lt 1 ]; then
+  display_help help
+fi
+
+for COMMAND in $@; do
+  case "$COMMAND" in
+    init_dirs|install_deps|install_docker|install_ohmytmux|install_nvim|install_extras|install_nvm|install_python_venv|install_nvchad)
+      $COMMAND || display_help "$COMMAND" "Failed running command "$COMMAND""
+      ;;
+    *)
+      display_help "$COMMAND"
+      ;;
+  esac
+done

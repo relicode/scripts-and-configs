@@ -1,20 +1,7 @@
-# <ScriptsAndConfigs>
-alias cd='cdnvm'
-alias dc='docker compose'
-alias l='ls -CF'
-alias la='ls -A'
-alias ll='ls -alF'
-alias vim="nvm exec default nvim"
-alias mdless='TERM=xterm-256color mdless'
-
-if [ -t 1 ]; then alias cal="ncal -b"; else alias cal="/usr/bin/cal"; fi
-
 if (command -v dircolors 1>/dev/null); then
-  test -r "$HOME/.dircolors" && eval "$(dircolors -b "$HOME/.dircolors")" || eval "$(dircolors -b)"
-  alias ls='ls --color=auto'
-  alias grep='grep --color=auto'
-  alias fgrep='fgrep --color=auto'
-  alias egrep='egrep --color=auto'
+  COLORS_PATH="$HOME/.dircolors"
+  test -r "$COLORS_PATH" && eval "$(dircolors -b "$COLORS_PATH")" || eval "$(dircolors -b)"
+  unset COLORS_PATH
 fi
 
 cdnvm() {
@@ -26,14 +13,13 @@ cdnvm() {
   command cd "$@" || return $?
   nvm_path="$(nvm_find_up .nvmrc | command tr -d '\n')"
 
-  # If there are no .nvmrc file, use the default nvm version
+  # Use the default nvm version if no .nvmrc file can be found
   if [[ ! $nvm_path = *[^[:space:]]* ]]; then
 
     declare default_version
     default_version="$(nvm version default)"
 
-    # If there is no default version, set it to `node`
-    # This will use the latest version on your machine
+    # If there is no default version, set it to `node`. This will use the latest version on your machine
     if [ $default_version = 'N/A' ]; then
       nvm alias default node
       default_version=$(nvm version default)
@@ -63,4 +49,15 @@ cdnvm() {
       fi
   fi
 }
-# </ScriptsAndConfigs>
+
+cdnvm
+
+alias cd='cdnvm'
+alias dc='docker compose'
+alias grep='grep --color=auto'
+alias ls='ls --color=auto'
+alias tree='tree -C'
+alias vim='nvm exec default nvim'
+alias yt-dlpp='yt-dlp -o '\''%(playlist)s/%(playlist_index)05d___%(title)s.%(ext)s'\'''
+if [ -t 1 ]; then alias cal="ncal -b"; else alias cal="/usr/bin/cal"; fi
+
