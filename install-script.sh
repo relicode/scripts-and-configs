@@ -99,6 +99,16 @@ install_nvchad () {
   git clone https://github.com/NvChad/NvChad "$HOME/.config/nvim" --depth 1
 }
 
+update_submodules () {
+  git submodule foreach "\
+    echo Submodule $sm_path at commit "$(git rev-parse HEAD)"; \
+    echo Rebasing to main...; \
+    git checkout master; \
+    git pull origin master; \
+    echo DONE\!; \
+    echo"
+}
+
 display_help () {
   echo
   if [ -z "$2" ]; then
@@ -112,6 +122,7 @@ display_help () {
     echo install_nvm
     echo install_python_venv
     echo install_nvchad
+    echo update_submodules
   else
     echo "$2"
   fi
@@ -124,8 +135,9 @@ fi
 
 for COMMAND in $@; do
   case "$COMMAND" in
-    init_dirs|install_deps|install_docker|install_ohmytmux|install_nvim|install_extras|install_nvm|install_python_venv|install_nvchad)
+    init_dirs|install_deps|install_docker|install_ohmytmux|install_nvim|install_extras|install_nvm|install_python_venv|install_nvchad|update_submodules)
       $COMMAND || display_help "$COMMAND" "Failed running command "$COMMAND""
+      break
       ;;
     *)
       display_help "$COMMAND"
