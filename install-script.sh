@@ -1,9 +1,11 @@
 #!/bin/sh
 
 WORK_DIR="$(pwd -P)"
-NODE_NVM_VERSION="lts/iron"
+EXTRAS_DIR="$WORK_DIR/extras"
 TMUX_DIR="$WORK_DIR/submodules/oh-my-tmux"
 PACKAGE_MANAGER="${PACKAGE_MANAGER:-apt}"
+
+. "$EXTRAS_DIR/.bash_env"
 
 init_dirs() {
   for DIRNAME in opt bin etc; do
@@ -15,7 +17,13 @@ init_dirs() {
 
 install_deps () {
   $PACKAGE_MANAGER install -y build-essential curl git ldnsutils lm-sensors locales-all \
-    python3-venv ripgrep sudo tmux tree unzip wget
+    python3-venv ripgrep rsync sudo tmux tree unzip wget
+}
+
+install_extras () {
+  rsync -avuP "$EXTRAS_DIR/" "$HOME" && \
+    mv -v "$HOME/bash_completion" "$XDG_CONFIG_HOME" && \
+    . "$HOME/.bashrc" || exit 1
 }
 
 install_docker () {
@@ -49,23 +57,19 @@ compile_nvim () {
     rm -r "$NEOVIM_TEMP_DIR"
 }
 
-install_extras () {
-  cp -v "extras/."* "$HOME"
-}
-
 install_nvm () {
   if [ -z "$XDG_CONFIG_HOME" ]; then
     echo "Set XDG_CONFIG_HOME first!"
-    return 1
+    exit 1
   fi
 
-  export NVM_DIR="$XDG_CONFIG_HOME/nvm"
+  export PROFILE='/dev/null'
 
   command -v bash 1>/dev/null && \
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash && \
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && \
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-  nvm i "$NODE_NVM_VERSION"
+  nvm i --lts=iron
 }
 
 install_python_venv () {
@@ -97,11 +101,11 @@ display_help () {
     echo "Invalid command: '$1' - valid commands are:"
     echo init_dirs
     echo install_deps
+    echo install_extras
     echo install_docker
     echo install_ohmytmux
     echo install_nvim
     echo compile_nvim
-    echo install_extras
     echo install_nvm
     echo install_python_venv
     echo install_nvchad
