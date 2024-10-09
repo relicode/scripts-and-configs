@@ -1,34 +1,51 @@
 #!/bin/sh
 
-WORK_DIR="$(pwd -P)"
-EXTRAS_DIR="$WORK_DIR/extras"
-TMUX_DIR="$WORK_DIR/submodules/oh-my-tmux"
+SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
+EXTRAS_DIR="$SCRIPT_DIR/extras"
+TMUX_DIR="$SCRIPT_DIR/submodules/oh-my-tmux"
 PACKAGE_MANAGER="${PACKAGE_MANAGER:-apt}"
 
-. "$EXTRAS_DIR/.bash_env"
+OS_LINUX="LINUX"
+OS_OSX="OSX"
+ARCH_AMD="AMD"
+ARCH_SILICON="SILICON"
+ARCH_ARM="ARM"
+
+OS=""
+ARCH=""
+
+case "$(uname -a)" in
+  Linux*) OS="$OS_LINUX"
+  ;;
+  Darwin*) OS="$OS_OSX"
+  ;;
+esac
+
+case "$(uname -a)" in
+  *x86_64*) ARCH="$ARCH_AMD"
+  ;;
+  *arm64*) ARCH="$ARCH_SILICON" # M1 Macs and above
+  ;;
+  *aarch64*) ARCH="$ARCH_ARM"   # Raspberry Pis etc
+  ;;
+esac
+
+[ -z "$OS" ] && echo "Unable to determine OS"; exit 1
+[ -z "$ARCH" ] && echo "Unable to determine architecture"; exit 1
+
+case $OS in
+  $OS_LINUX) . "$EXTRAS_DIR/bash.env"
+  ;;
+  $OS_OSX) . "$EXTRAS_DIR/zsh.env"
+  ;;
+esac
 
 init_dirs() {
   for DIRNAME in opt bin etc; do
     DIRPATH="$HOME/$DIRNAME"
     if [ ! -d "$DIRPATH" ]; then mkdir -pv "$DIRPATH"; fi
   done || exit 1
-  cp -v bin/* "$HOME/bin"
-}
-
-install_deps () {
-  $PACKAGE_MANAGER install -y build-essential curl git ldnsutils lm-sensors locales-all \
-    python3-venv ripgrep rsync sudo tmux tree unzip wget
-}
-
-install_extras () {
-  rsync -avuP "$EXTRAS_DIR/" "$HOME" && \
-    mv -v "$HOME/bash_completion" "$XDG_CONFIG_HOME" && \
-    . "$HOME/.bashrc" || exit 1
-}
-
-install_docker () {
-  $PACKAGE_MANAGER remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
-  curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh ./get-docker.sh && rm get-docker.sh
+  cp -v bin/common/* "$HOME/bin"
 }
 
 install_ohmytmux () {
@@ -37,52 +54,17 @@ install_ohmytmux () {
 }
 
 install_nvim () {
-  cd "$HOME/opt"
-  wget https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz
-  tar -xvvf nvim-linux64.tar.gz
-  rm nvim-linux64.tar.gz
-  cd "$HOME/bin"
-  ln -s "$HOME/opt/nvim-linux64/bin/nvim" ./nvim
-  cd "$WORK_DIR"
-}
-
-NEOVIM_TEMP_DIR='/tmp/neovim'
-compile_nvim () {
-  $PACKAGE_MANAGER install -y ninja-build gettext cmake unzip curl && \
-    git clone https://github.com/neovim/neovim "$NEOVIM_TEMP_DIR" && \
-    cd "$NEOVIM_TEMP_DIR" && \
-    make CMAKE_BUILD_TYPE=RelWithDebInfo && \
-    sudo make install && \
-    cd "$HOME" && \
-    rm -r "$NEOVIM_TEMP_DIR"
-}
-
-install_nvm () {
-  if [ -z "$XDG_CONFIG_HOME" ]; then
-    echo "Set XDG_CONFIG_HOME first!"
-    exit 1
-  fi
-
-  export PROFILE='/dev/null'
-
-  command -v bash 1>/dev/null && \
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash && \
-  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && \
-  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
-  nvm i --lts=iron
-}
-
-install_python_venv () {
-  if [ ! -d "$HOME/etc/python3-venv" ]; then
-    command python3 -m venv -h 1>/dev/null || exit 1
-    python3 -m venv "$HOME/etc/python3-venv"
-  fi
+  [ $OS = $OS_LINUX ] && [ $ARCH = $ARCH_AMD ] && (
+    cd "$HOME/opt" \
+      && wget https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz \
+      && tar -xvvf nvim-linux64.tar.gz \
+      && rm nvim-linux64.tar.gz \
+      && ln -s "$HOME/opt/nvim-linux64/bin/nvim" "$HOME/bin/"
+  )
 }
 
 install_nvchad () {
-  rm -rf "$HOME/.config/nvim"
-  rm -rf "$HOME/.local/share/nvim"
-  git clone https://github.com/NvChad/NvChad "$HOME/.config/nvim" --depth 1
+  "$SCRIPT_DIR/bin/common/reset-nvchad.sh"
 }
 
 update_submodules () {
