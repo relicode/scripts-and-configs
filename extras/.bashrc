@@ -34,15 +34,31 @@ else
 fi
 unset color_prompt
 
-responsible_source () {
-  for i in $@; do
-    if [ -s "$i" ]; then
-      . "$i"
+path_add () {
+  for src in "$@"; do
+    if [ -d "$src" ]; then
+      export PATH="$src:$PATH"
+    else
+      echo "path_add: $src is not a directory"
+      # printf
     fi
   done
 }
 
-responsible_source "$HOME/.bash_env" "$NVM_DIR/nvm.sh" "$HOME/.cargo/env" 
-responsible_source "$XDG_CONFIG_HOME/bash_completion/"*
-responsible_source "$HOME/.bash_aliases"
+safe_source () {
+  for src in $@; do
+    if [ -f "$src" ]; then
+      . "$src"
+    else
+      echo "safe_source: $src not readable"
+      # printf
+    fi
+  done
+}
+
+safe_source "$HOME/.bash_env" \
+  "$NVM_DIR/nvm.sh" \
+  "$HOME/.cargo/env" \
+  "$XDG_CONFIG_HOME/bash_completion/"* \
+  "$HOME/.bash_aliases"
 
