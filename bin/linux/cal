@@ -1,0 +1,6 @@
+#!/bin/sh
+
+CMD="/usr/bin/cal"
+if [ -t 1 ]; then CMD="ncal -b"; fi
+
+$CMD $@
