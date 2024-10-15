@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "@types/mpv-script": "^0.32.8"
+  }
+}
