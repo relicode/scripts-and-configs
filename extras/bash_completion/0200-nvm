@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
-
-# bash completion for Node Version Manager (NVM)
+# vim: ft=bash
 
 if ! command -v nvm &> /dev/null; then
   return

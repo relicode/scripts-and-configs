@@ -1,3 +1,5 @@
+# vim: ft=bash
+
 # If not running interactively, don't do anything
 [ -z "$PS1" ] && return
 
@@ -40,7 +42,6 @@ path_add () {
       export PATH="$src:$PATH"
     else
       echo "path_add: $src is not a directory"
-      # printf
     fi
   done
 }
@@ -51,14 +52,20 @@ safe_source () {
       . "$src"
     else
       echo "safe_source: $src not readable"
-      # printf
     fi
   done
 }
 
-safe_source "$HOME/.bash_env" \
-  "$NVM_DIR/nvm.sh" \
-  "$HOME/.cargo/env" \
-  "$XDG_CONFIG_HOME/bash_completion/"* \
-  "$HOME/.bash_aliases"
-
+SCRIPT_CONF_HOME="$HOME/etc/scripts-and-configs"
+  path_add \
+    "$SCRIPT_CONF_HOME/bin/common" \
+    "$SCRIPT_CONF_HOME/bin/linux"
+  safe_source \
+    "$HOME/.bash_env" \
+    "$NVM_DIR/nvm.sh" \
+    "$HOME/.cargo/env" \
+    "$XDG_CONFIG_HOME/bash_completion/"* \
+    "$HOME/.bash_aliases" \
+    "$SCRIPT_CONF_HOME/extras/bash_completion/"* \
+    "$SCRIPT_CONF_HOME/extras/bash-nvm-autocd"
+unset SCRIPT_CONF_HOME
