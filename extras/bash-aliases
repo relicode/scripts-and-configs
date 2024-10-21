@@ -1,7 +1,15 @@
 SCRIPT_CONF_HOME="$HOME/etc/scripts-and-configs"
 
+alias cls='clear; ls'
+alias dc='docker compose'
+alias dudo='sudo -u dockeruser'
+alias yt-dlpen='yt-dlp --write-sub --sub-lang "en.*"'
+alias yt-dlpen-auto='yt-dlp --write-auto-sub --sub-lang "en.*"'
+alias yt-dlpp='yt-dlp -o '\''%(playlist)s/%(playlist_index)05d___%(title)s.%(ext)s'\'''
+
 alias mpvc="mpv --script="$SCRIPT_CONF_HOME/submodules/mpv-cut/main.lua""
 alias mpvv="mpv --script="$SCRIPT_CONF_HOME/helpers/mpv-saver/main.js" --input-conf="$SCRIPT_CONF_HOME/helpers/mpv-saver/input.conf""
 alias mpvs='mpvv --shuffle'
+alias mpvm='mpv --vo=null'
 
 # vim: ft=sh
