@@ -17,26 +17,43 @@ function includes(arr, val) {
   return false
 }
 
-function toggleSave(shouldSave) {
+var FILE_SAVE = 'save'
+var FILE_DELETE = 'delete'
+var FILE_PLAYLIST = 'playlist'
+
+function toggleFile(action) {
   var fileName = mp.get_property_osd('filename')
   var filePath = mp.get_property('path')
 
-  if (config[filePath] === shouldSave) {
+  if (config[filePath] === action) {
     delete config[filePath]
     mp.osd_message(fileName + ' reset')
   } else {
-    config[filePath] = shouldSave
-    mp.osd_message(fileName + (shouldSave ? ' to save' : ' to del'))
+    config[filePath] = action
+    switch (action) {
+      case FILE_SAVE:
+        mp.osd_message(fileName + ' marked for saving')
+        break
+      case FILE_DELETE:
+        mp.osd_message(fileName + ' marked for deletion')
+        break
+      case FILE_PLAYLIST:
+        mp.osd_message(fileName + ' marked for playlist')
+        break
+    }
   }
 
   mp.utils.write_file('file://' + CONF_FILE_PATH, JSON.stringify(config))
 }
 
 function save() {
-  toggleSave(true)
+  toggleFile(FILE_SAVE)
 }
 function del() {
-  toggleSave(false)
+  toggleFile(FILE_DELETE)
+}
+function playlist() {
+  toggleFile(FILE_PLAYLIST)
 }
 
 var eventHandlers = {
@@ -49,6 +66,7 @@ var eventHandlers = {
 
 mp.register_event('file-loaded', eventHandlers.fileLoaded)
 
-mp.add_forced_key_binding('s', 'toggleSaveY', save)
-mp.add_forced_key_binding('d', 'toggleSaveN', del)
+mp.add_forced_key_binding('s', 'toggleFileForSaving', save)
+mp.add_forced_key_binding('d', 'toggleFileForDeletion', del)
+mp.add_forced_key_binding('a', 'toggleFileForPlaylist', playlist)
 
