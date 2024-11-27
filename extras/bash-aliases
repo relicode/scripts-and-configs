@@ -13,3 +13,5 @@ alias mpvc="mpv --script="$SCRIPT_CONF_HOME/submodules/mpv-cut/main.lua""
 alias mpvv="mpv --script="$SCRIPT_CONF_HOME/helpers/mpv-saver/main.js" --input-conf="$SCRIPT_CONF_HOME/helpers/mpv-saver/input.conf""
 alias mpvs='mpvv --shuffle'
 alias mpvm='mpv --vo=null'
+
+unset SCRIPT_CONF_HOME
