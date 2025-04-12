@@ -20,10 +20,18 @@ const listMapping = {
 
 for (const [file, action] of Object.entries(data)) listMapping[action].push(file)
 
+const BACKSLASH = '\u005C'
+const doubleQuoteRegExp = new RegExp('"', 'gi')
+const escapeFileName = (fileName) => `"${fileName.replace(doubleQuoteRegExp, `${BACKSLASH}"`)}"`
+
 const lines = toSave.length ? [`if [ ! -d 'temp' ]; then mkdir temp; fi;`] : []
-for (const p of toDel) lines.push(`rm -v '${p}';`)
-for (const p of toSave) lines.push(`if [ -d 'temp' ]; then mv -v '${p}' temp; fi;`)
-for (const p of toPlaylist) lines.push(`echo '${p}' >> playlist.m3u;`)
+for (const d of toDel) lines.push(`rm -v ${escapeFileName(d)};`)
+for (const s of toSave) lines.push(`if [ -d 'temp' ]; then mv -v ${escapeFileName(s)} temp; fi;`)
+for (const p of toPlaylist) lines.push(`echo ${escapeFileName(p)} >> playlist.m3u;`)
 lines.push(`rm -v '${dataPath}';`)
 
-for (const l of lines) console.log(l)
+if (lines.length) {
+  console.log('echo;')
+  for (const l of lines) console.log(l)
+}
+
