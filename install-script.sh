@@ -70,9 +70,10 @@ install_nvchad () {
 update_submodules () {
   git submodule foreach "\
     echo Submodule $sm_path at commit "$(git rev-parse HEAD)"; \
-    echo Rebasing to master...; \
-    git checkout master; \
-    git pull origin master; \
+    MAIN_BRANCH="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+    echo "Rebasing to $MAIN_BRANCH..."; \
+    git checkout "$MAIN_BRANCH"; \
+    git pull origin "$MAIN_BRANCH"; \
     echo DONE\!; \
     echo"
 }
