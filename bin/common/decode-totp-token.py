@@ -2,12 +2,14 @@
 
 import base64, html, json, sys
 
-USAGE = """Usage: ./decode-totp-token.py <JSON...>
+exec_name = sys.argv[0].split('/')[-1]
 
-Example: ./decode-totp-token.py '{"algo":"SHA1","counter":0,"digits":6,"issuerExt":"Firefox","label":"firstname.lastname@email.com","period":30,"secret":[117,54,51],"type":"TOTP"}' '{"algo":"SHA1","counter":0,"digits":6,"issuerExt":"Firefox","label":"firstname.lastname@email.com","period":30,"secret":[51,51,51],"type":"TOTP"}'"""
+USAGE = 'Usage: ' + exec_name  + """ <JSON...>
+
+Example:
+""" + exec_name + """ '{"algo":"SHA1","counter":0,"digits":6,"issuerExt":"Firefox","label":"firstname.lastname@email.com","period":30,"secret":[117,54,51],"type":"TOTP"}'"""
 
 def decode(s):
-    # s = html.unescape(s)
     token = json.loads(s)
     secret = bytes((x + 256) & 255 for x in token["secret"])
     code = base64.b32encode(secret)
