@@ -7,7 +7,7 @@ cffi==1.17.1
 charset-normalizer==3.4.0
 ConfigArgParse==1.7
 configobj==5.0.9
-cryptography==43.0.3
+cryptography==44.0.1
 distro==1.9.0
 dns-lexicon==3.18.0
 dnspython==2.7.0
