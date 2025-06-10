@@ -21,7 +21,7 @@ pyotp==2.9.0
 pyRFC3339==2.0.1
 pytz==2024.2
 PyYAML==6.0.2
-requests==2.32.3
+requests==2.32.4
 requests-file==2.1.0
 soupsieve==2.6
 tldextract==5.1.3
