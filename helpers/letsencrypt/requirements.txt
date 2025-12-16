@@ -11,7 +11,7 @@ cryptography==44.0.1
 distro==1.9.0
 dns-lexicon==3.18.0
 dnspython==2.7.0
-filelock==3.16.1
+filelock==3.20.1
 idna==3.10
 josepy==1.14.0
 parsedatetime==2.6
