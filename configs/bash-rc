@@ -1,5 +1,3 @@
-# vim: ft=bash
-
 # If not running interactively, don't do anything
 [ -z "$PS1" ] && return
 
@@ -69,3 +67,5 @@ SCRIPT_CONF_HOME="$HOME/etc/scripts-and-configs"
     "$SCRIPT_CONF_HOME/extras/bash_completion/"* \
     "$SCRIPT_CONF_HOME/extras/bash-nvm-autocd"
 unset SCRIPT_CONF_HOME
+
+# vim: ft=bash

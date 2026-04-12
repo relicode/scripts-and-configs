@@ -10,10 +10,8 @@
 	},
 	"scripts": {
 		"build": "babel --out-dir=dist source",
-		"demo": "node . test-dupes/dupes.json",
 		"dev": "babel --out-dir=dist --watch source",
-		"generate-test-dupes": "yes | ddh --output test-dupes/dupes.json --format json --ignore test-dupes/dupes.json --directories test-dupes",
-		"postinstall": "npm run build"
+		"test": "prettier --check . && xo && ava"
 	},
 	"files": [
 		"dist"

@@ -1,15 +1,13 @@
 alias cls='clear; ls'
 alias dc='docker compose'
 alias dudo='sudo -u dockeruser'
+
 alias yt-dlpen='yt-dlp --write-sub --sub-lang "en.*"'
 alias yt-dlpen-auto='yt-dlp --write-auto-sub --sub-lang "en.*"'
 alias yt-dlpp='yt-dlp -o '\''%(playlist)s/%(playlist_index)05d___%(title)s.%(ext)s'\'''
 
-alias mpvv="mpv --profile=with-scripts"
+alias mpvv="mpv --script='$HOME/etc/scripts-and-configs/helpers/mpv-saver/saver.js'"
 alias mpvs='mpvv --shuffle'
-alias mpvm='mpv --profile=music-only'
-alias mpv-cut="mpv --profile=cut"
-
-alias sort.js="$HOME/etc/scripts-and-configs/helpers/mpv-saver/sort.js"
+alias ssort="$HOME/etc/scripts-and-configs/helpers/mpv-saver/sort.mjs"
 
 # vim: ft=bash
