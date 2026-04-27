@@ -1,0 +1,71 @@
+# Place at: ~/.bash_env
+
+# Environment setup (helpers, vars, PATH).
+# Sourced by ~/.profile at login, and automatically by bash for non-interactive
+# shells via $BASH_ENV. Interactive non-login shells get this via inheritance
+# from the login shell (env vars + exported functions). Idempotent.
+
+# ── Helpers ────────────────────────────────────────────────────────────
+path_add () {
+  for src in "$@"; do
+    if [ ! -d "$src" ]; then
+      echo "path_add: $src is not a directory"
+      continue
+    fi
+    case ":$PATH:" in
+      *":$src:"*) ;;
+      *) export PATH="$src:$PATH" ;;
+    esac
+  done
+}
+
+safe_source () {
+  for src in "$@"; do
+    if [ -f "$src" ]; then
+      . "$src"
+    else
+      echo "safe_source: $src not readable"
+    fi
+  done
+}
+
+# Make helpers visible to bash subshells (no-op outside bash).
+[ -n "$BASH_VERSION" ] && export -f path_add safe_source
+
+# ── Environment ───────────────────────────────────────────────────────
+# Locale
+export LC_ALL=en_IE.UTF-8
+export LC_CTYPE=UTF-8
+
+# XDG Base Directory Specification
+export XDG_CONFIG_HOME="$HOME/.config"
+export XDG_DATA_HOME="$HOME/.local/share"
+export XDG_STATE_HOME="$HOME/.local/state"
+export XDG_CACHE_HOME="$HOME/.cache"
+
+# Default editor / pager
+if   command -v nvim >/dev/null 2>&1; then export EDITOR=nvim
+elif command -v vim  >/dev/null 2>&1; then export EDITOR=vim
+else                                       export EDITOR=nano
+fi
+export VISUAL="$EDITOR"
+export PAGER=less
+export LESS='-FRi --mouse'
+
+# Colorize gcc/g++ diagnostics
+export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+# ── Tool homes ────────────────────────────────────────────────────────
+export BUN_INSTALL="$HOME/.bun"
+export NVM_DIR="$HOME/.config/nvm"
+
+# ── PATH ──────────────────────────────────────────────────────────────
+path_add \
+  "$HOME/.local/bin"                          `# user-local installs (pip --user, pipx)` \
+  "$BUN_INSTALL/bin"                          `# bun` \
+  "$HOME/.cargo/bin"                          `# rustup / cargo` \
+  "$HOME/bin"                                 `# personal scripts` \
+  "$HOME/etc/scripts-and-configs/bin/common"  `# tracked scripts: cross-platform` \
+  "$HOME/etc/scripts-and-configs/bin/linux"   `# tracked scripts: linux-only`
+
+# vim: ft=sh

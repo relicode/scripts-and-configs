@@ -1,0 +1,42 @@
+# Place at: ~/.bash_aliases
+
+# Interactive aliases and small helpers. Sourced from .bashrc.
+
+# Color-aware ls/grep (LS_COLORS is set up by dircolors in .bashrc).
+if [ -x /usr/bin/dircolors ]; then
+  alias ls='ls --color=auto'
+  alias grep='grep --color=auto'
+  alias fgrep='fgrep --color=auto'
+  alias egrep='egrep --color=auto'
+fi
+
+# ls shortcuts
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+alias cls='clear; ls'
+
+# notify-send when a long-running command finishes (use: `sleep 10; alert`)
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+# Make and enter a directory.
+mkcd() { mkdir -p -- "$1" && cd -- "$1"; }
+
+# Run neovim with nvm's default node on PATH (so node-based plugins find it).
+alias vim='nvm exec --silent default ~/opt/nvim-linux-x86_64/bin/nvim'
+
+# Docker
+alias dc='docker compose'
+alias dudo='sudo -u dockeruser'
+
+# yt-dlp
+alias yt-dlpen='yt-dlp --write-sub --sub-lang "en.*"'
+alias yt-dlpen-auto='yt-dlp --write-auto-sub --sub-lang "en.*"'
+alias yt-dlpp='yt-dlp -o '\''%(playlist)s/%(playlist_index)05d___%(title)s.%(ext)s'\'''
+
+# mpv (mpv-saver helpers)
+alias mpvv="mpv --script='$HOME/etc/scripts-and-configs/helpers/mpv-saver/saver.js'"
+alias mpvs='mpvv --shuffle'
+alias ssort="$HOME/etc/scripts-and-configs/helpers/mpv-saver/sort.mjs"
+
+# vim: ft=bash
