@@ -12,7 +12,7 @@ Personal dotfiles + scripts, checked out at `~/etc/scripts-and-configs`. It is *
 
 - `configs/` — **template files**, not symlinked. Each file has a `# Place at: ~/.foo` header naming the destination. Editing here does not change the live shell until the file is copied (or symlinked) into place. `BASH_CONFIG.md` is the canonical doc for the shell setup and explains *why* the four-file split exists — read it before editing `bash-env`/`bash-rc`/`bash-aliases`/`profile` or `nvm-autocd`.
 - `bin/common/` and `bin/linux/` — scripts on `$PATH`. `linux/` holds Linux-only scripts (e.g. shadowing system `cal`); cross-platform stuff goes in `common/`.
-- `helpers/` — small multi-file projects with their own toolchains (`duper-cli` is an Ink/React CLI; `mpv-saver` is a two-runtime project; `letsencrypt` is a wrapper around certbot). Treat each as its own project.
+- `helpers/` — small multi-file projects with their own toolchains (`deduper` is a Bun + Ink/React TUI that wraps `fclones`; `mpv-saver` is a two-runtime project; `letsencrypt` is a wrapper around certbot). Treat each as its own project.
 - `submodules/` — vendored upstreams (`oh-my-tmux`, `ufw-docker`, `mpv-cut`). Don't edit; update with the submodule command below.
 
 ## Common commands
@@ -24,11 +24,12 @@ git clone --recurse-submodules -j8 git@github.com:relicode/scripts-and-configs.g
 # Pull + bring submodules forward to their tracked branches
 git pull --rebase && git submodule update --remote --merge
 
-# duper-cli (Ink/React, Babel-built)
-cd helpers/duper-cli
-npm run build    # one-shot
-npm run dev      # watch
-npm test         # prettier + xo + ava
+# deduper (Bun + Ink/React, single-file binary build)
+cd helpers/deduper
+bun install
+bun run start    # run from source
+bun run build    # cross-compile to dist/deduper-{linux,darwin}-{x64,arm64}
+bun run lint     # eslint + prettier + tsc --noEmit
 
 # mpv-saver sort.mjs — runs directly, requires Node 24+
 ./helpers/mpv-saver/sort.mjs -h

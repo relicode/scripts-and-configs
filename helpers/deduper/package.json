@@ -1,0 +1,39 @@
+{
+  "name": "deduper",
+  "version": "0.1.0",
+  "type": "module",
+  "module": "src/index.tsx",
+  "scripts": {
+    "start": "bun run src/index.tsx",
+    "typecheck": "tsc --noEmit",
+    "build": "bun run scripts/build.ts",
+    "format": "concurrently --max-processes 1 --prefix-colors auto 'bun:format:eslint' 'bun:format:prettier'",
+    "format:eslint": "eslint src scripts --fix",
+    "format:prettier": "prettier --write '**/*.md' '{src,scripts}/**/*.{ts,tsx,mjs,js,json}' 'package.json' 'tsconfig.json' 'eslint.config.js' 'prettier.config.mjs'",
+    "format:check": "prettier --check '**/*.md' '{src,scripts}/**/*.{ts,tsx,mjs,js,json}' 'package.json' 'tsconfig.json' 'eslint.config.js' 'prettier.config.mjs'",
+    "lint": "concurrently --prefix-colors auto 'bun:lint:eslint' 'bun:lint:prettier' 'bun:typecheck'",
+    "lint:eslint": "eslint src scripts",
+    "lint:prettier": "prettier --check '**/*.md' '{src,scripts}/**/*.{ts,tsx,mjs,js,json}' 'package.json' 'tsconfig.json' 'eslint.config.js' 'prettier.config.mjs'",
+    "lint:fix": "eslint src scripts --fix"
+  },
+  "dependencies": {
+    "ink": "^5.2.1",
+    "meow": "^13.2.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "@types/bun": "latest",
+    "@types/react": "^18.3.12",
+    "concurrently": "^9.2.1",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.59.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

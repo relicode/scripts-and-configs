@@ -1,0 +1,11 @@
+# Dependencies and lockfiles
+node_modules/
+**/node_modules/
+bun.lock
+
+# Build outputs
+dist/
+
+# Editor / tooling local state
+.claude/settings.local.json
+.idea/
