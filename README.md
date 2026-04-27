@@ -1,4 +1,4 @@
-# My scripts and configs
+# Scripts and configs - version 1.0.0
 
 ## Installation:
 
