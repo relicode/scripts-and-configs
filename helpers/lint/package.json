@@ -1,0 +1,29 @@
+{
+  "name": "lint",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Global lint/format wrapper around prettier + eslint + tsc; fallback configs for repos that don't ship their own.",
+  "scripts": {
+    "lint": "bun lint.ts",
+    "format": "bun lint.ts -f",
+    "build": "bun build lint.ts --compile --outfile dist/lint"
+  },
+  "devDependencies": {
+    "@eslint/css": "^1.2.0",
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^1.2.0",
+    "@eslint/markdown": "^8.0.1",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "@types/bun": "latest",
+    "@types/node": "^25.7.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.6.0",
+    "jiti": "^2.7.0",
+    "prettier": "^3.8.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.3"
+  }
+}
