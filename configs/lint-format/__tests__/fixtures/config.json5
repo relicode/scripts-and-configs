@@ -1,0 +1,6 @@
+{
+  // JSON5 allows comments, unquoted keys, single quotes, and trailing commas
+  name: 'json5-fixture',
+  version: '1.0.0',
+  values: [1, 2, 3],
+}

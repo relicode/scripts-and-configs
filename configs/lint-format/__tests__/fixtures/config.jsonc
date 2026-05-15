@@ -1,0 +1,7 @@
+{
+  // jsonc allows line comments
+  "name": "jsonc-fixture",
+  /* and block comments */
+  "version": "1.0.0",
+  "tags": ["a", "b"],
+}
