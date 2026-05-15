@@ -1,9 +1,0 @@
-# dependencies (bun install)
-node_modules
-
-# build output (bun run build)
-dist
-
-# caches
-.eslintcache
-*.tsbuildinfo

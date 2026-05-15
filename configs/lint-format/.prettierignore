@@ -1,0 +1,10 @@
+.gitignore
+node_modules
+dist
+
+# helm charts (Go template syntax breaks prettier-yaml)
+**/charts/**
+**/templates/**
+Chart.yaml
+Chart.lock
+values*.yaml
