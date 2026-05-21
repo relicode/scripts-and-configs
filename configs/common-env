@@ -50,7 +50,7 @@ else                                       export EDITOR=nano
 fi
 export VISUAL="$EDITOR"
 export PAGER=less
-export LESS='-FRi --mouse'
+export LESS='-RFXi --mouse'
 
 # Colorize gcc/g++ diagnostics
 export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
