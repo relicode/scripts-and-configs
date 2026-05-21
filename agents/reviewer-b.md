@@ -88,6 +88,7 @@ Review recently changed TS/TSX/JS code for:
 - Improper `useEffect` usage in Ink components — missing cleanup, wrong deps
 - Resource leaks (unclosed streams, uncancelled subscriptions, undrained subprocesses)
 - Magic numbers or strings without named constants — literals used as keys, discriminants, or identifiers belong in a `constants` module, ideally as `enum` values
+- Enum shape: `PascalCase` for the type, `SCREAMING_SNAKE_CASE` for members, and each member value must equal the member name as a string (`enum MyEnum { MY_VALUE = 'MY_VALUE' }`). Keeps the runtime literal identical to the source identifier and avoids TS's default implicit-number assignment
 - Mutable state where immutability is expected
 - Gratuitous Node APIs when Bun has a native equivalent (see table above)
 
