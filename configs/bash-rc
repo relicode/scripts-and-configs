@@ -81,7 +81,12 @@ if ! shopt -oq posix; then
   fi
 
   # bun (prints its completion script to stdout)
-  command -v bun >/dev/null 2>&1 && source <(bun completions)
+  # Re-register with -o default so paths like `bun ./scri<TAB>` fall back to
+  # filename completion when bun's own function produces no matches.
+  command -v bun >/dev/null 2>&1 && {
+    source <(bun completions)
+    complete -o default -o bashdefault -F _bun_completions bun
+  }
 fi
 
 # ── Aliases ─────────────────────────────────────────────────────────

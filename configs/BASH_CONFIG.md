@@ -95,7 +95,7 @@ Prefer XDG paths over dotfiles directly under `$HOME`. New configs go in `$XDG_C
 | `XDG_CACHE_HOME` | `~/.cache` |
 | `EDITOR` / `VISUAL` | `nvim` → `vim` → `nano` (first installed wins) |
 | `PAGER` | `less` |
-| `LESS` | `-FRi --mouse` |
+| `LESS` | `-RFXi --mouse` |
 | `BUN_INSTALL` | `~/.bun` |
 | `NVM_DIR` | `~/.config/nvm` |
 | `BASH_ENV` | `~/.bash_env` (set in `.profile`) |
