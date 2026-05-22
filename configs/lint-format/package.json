@@ -2,11 +2,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "format": "concurrently --max-processes 1 --prefix-colors auto --kill-others-on-fail 'bun:format:biome' 'bun:format:eslint' 'bun:format:prettier'",
+    "format": "FORCE_COLOR=${FORCE_COLOR:-1} concurrently --max-processes 1 --prefix-colors auto --kill-others-on-fail 'bun:format:biome' 'bun:format:eslint' 'bun:format:prettier'",
     "format:biome": "biome check --write",
     "format:eslint": "eslint --fix",
     "format:prettier": "prettier --write '**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc,json5,md,css,yaml,yml}'",
-    "lint": "concurrently --prefix-colors auto 'bun:lint:*'",
+    "lint": "FORCE_COLOR=${FORCE_COLOR:-1} concurrently --prefix-colors auto 'bun:lint:*'",
     "lint:biome": "biome check",
     "lint:eslint": "eslint",
     "lint:prettier": "prettier --check '**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc,json5,md,css,yaml,yml}'",
