@@ -2,8 +2,11 @@ import css from '@eslint/css'
 import js from '@eslint/js'
 import json from '@eslint/json'
 import markdown from '@eslint/markdown'
+// React-only: drop the next import for non-React projects
 import eslintReact from '@eslint-react/eslint-plugin'
 import { defineConfig } from 'eslint/config'
+// React-only: drop the next import for non-React projects
+import reactHooks from 'eslint-plugin-react-hooks'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
@@ -31,10 +34,16 @@ export default defineConfig([
     },
   },
   tseslint.configs.recommended,
+  // React-only: drop the next two entries for non-React projects
   {
     files: ['**/*.{jsx,tsx}'],
     ...eslintReact.configs.recommended,
   },
+  {
+    files: ['**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    ...reactHooks.configs.flat.recommended,
+  },
+  // End React-only
   {
     files: ['**/*.json'],
     ignores: ['**/tsconfig*.json', '**/.vscode/*.json'],
