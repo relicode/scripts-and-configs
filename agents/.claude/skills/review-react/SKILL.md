@@ -1,15 +1,15 @@
 ---
 name: review-react
-description: React and Next.js review specifics. Grades Vercel's react-best-practices performance rules on the review scale and says when a production build is worth running. Use together with review-generic and react-best-practices when reviewing React web code; preloaded by reviewer-r.
+description: React and Next.js review specifics. Grades the best-practices-react performance rules on the review scale and says when a production build is worth running. Use together with review-generic, review-bun, best-practices-bun and best-practices-react when reviewing React web code; preloaded by reviewer-r.
 ---
 
 # Code review: React and Next.js
 
-Extends `review-generic`: same scope, phases and report, plus the checks below. The project rule `.claude/rules/js/react.md` says how to apply the guide; validate the way `.claude/rules/js/lint-and-format.md` describes.
+Extends `review-generic` and builds on `review-bun`, whose TypeScript and performance checks apply to React code too: same scope, phases and report, plus the checks below. The project rule `.claude/rules/js/react.md` says how to apply the guide; validate the way `.claude/rules/js/lint-and-format.md` describes.
 
 ## Performance findings
 
-Check the change against the `react-best-practices` rules. The full rules, with incorrect and correct examples, are in `references/react-performance-guidelines.md` in that skill's base directory. Record problems in the **Bad practices** category, graded on review-generic's scale so 🔴 means the same thing in every report: a CRITICAL or HIGH rule broken on a real code path is 🟠, anything lower is 🟡. Fixes that need a new dependency go under Decisions to confirm.
+Check the change against the `best-practices-react` rules. The full rules, with incorrect and correct examples, are in `references/react-performance-guidelines.md` in that skill's base directory. Record problems in the **Bad practices** category, graded on review-generic's scale so 🔴 means the same thing in every report: a CRITICAL or HIGH rule broken on a real code path is 🟠, anything lower is 🟡. Fixes that need a new dependency go under Decisions to confirm.
 
 ## Build
 

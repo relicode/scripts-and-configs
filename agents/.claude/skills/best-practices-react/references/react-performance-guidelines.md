@@ -7,22 +7,21 @@ January 2026
 > **Note:**
 > This document is mainly for agents and LLMs to follow when maintaining, generating, or refactoring React and Next.js codebases at Vercel.
 
+> **Fork:**
+> Forked from Vercel Engineering's react-best-practices (MIT; see `LICENSE.txt` in the skill folder). Its framework-neutral rules, such as async waterfalls, cross-request caching and hot-path JavaScript, now live in the `best-practices-bun` skill; this document keeps the React, Next.js and browser ones.
+
 ---
 
 ## Abstract
 
-Comprehensive performance optimization guide for React and Next.js applications, designed for AI agents and LLMs. Contains 40+ rules across 8 categories, prioritized by impact from critical (eliminating waterfalls, reducing bundle size) to incremental (advanced patterns). Each rule includes detailed explanations, real-world examples comparing incorrect vs. correct implementations, and specific impact metrics to guide automated refactoring and code generation.
+Comprehensive performance optimization guide for React and Next.js applications, designed for AI agents and LLMs. Contains 28 rules across 8 categories, prioritized by impact from critical (eliminating waterfalls, reducing bundle size) to incremental (advanced patterns). Each rule includes detailed explanations, real-world examples comparing incorrect vs. correct implementations, and specific impact metrics to guide automated refactoring and code generation.
 
 ---
 
 ## Table of Contents
 
 1. [Eliminating Waterfalls](#1-eliminating-waterfalls) — **CRITICAL**
-   - 1.1 [Defer Await Until Needed](#11)
-   - 1.2 [Dependency-Based Parallelization](#12)
-   - 1.3 [Prevent Waterfall Chains in API Routes](#13)
-   - 1.4 [Promise.all() for Independent Operations](#14)
-   - 1.5 [Strategic Suspense Boundaries](#15)
+   - 1.1 [Strategic Suspense Boundaries](#11)
 2. [Bundle Size Optimization](#2-bundle-size-optimization) — **CRITICAL**
    - 2.1 [Avoid Barrel File Imports](#21)
    - 2.2 [Conditional Module Loading](#22)
@@ -30,10 +29,9 @@ Comprehensive performance optimization guide for React and Next.js applications,
    - 2.4 [Dynamic Imports for Heavy Components](#24)
    - 2.5 [Preload Based on User Intent](#25)
 3. [Server-Side Performance](#3-server-side-performance) — **HIGH**
-   - 3.1 [Cross-Request LRU Caching](#31)
-   - 3.2 [Minimize Serialization at RSC Boundaries](#32)
-   - 3.3 [Parallel Data Fetching with Component Composition](#33)
-   - 3.4 [Per-Request Deduplication with React.cache()](#34)
+   - 3.1 [Minimize Serialization at RSC Boundaries](#31)
+   - 3.2 [Parallel Data Fetching with Component Composition](#32)
+   - 3.3 [Per-Request Deduplication with React.cache()](#33)
 4. [Client-Side Data Fetching](#4-client-side-data-fetching) — **MEDIUM-HIGH**
    - 4.1 [Deduplicate Global Event Listeners](#41)
    - 4.2 [Use SWR for Automatic Deduplication](#42)
@@ -52,19 +50,9 @@ Comprehensive performance optimization guide for React and Next.js applications,
    - 6.5 [Prevent Hydration Mismatch Without Flickering](#65)
    - 6.6 [Use Activity Component for Show/Hide](#66)
    - 6.7 [Use Explicit Conditional Rendering](#67)
-7. [JavaScript Performance](#7-javascript-performance) — **LOW-MEDIUM**
+7. [Browser APIs](#7-browser-apis) — **LOW-MEDIUM**
    - 7.1 [Batch DOM CSS Changes](#71)
-   - 7.2 [Build Index Maps for Repeated Lookups](#72)
-   - 7.3 [Cache Property Access in Loops](#73)
-   - 7.4 [Cache Repeated Function Calls](#74)
-   - 7.5 [Cache Storage API Calls](#75)
-   - 7.6 [Combine Multiple Array Iterations](#76)
-   - 7.7 [Early Length Check for Array Comparisons](#77)
-   - 7.8 [Early Return from Functions](#78)
-   - 7.9 [Hoist RegExp Creation](#79)
-   - 7.10 [Use Loop for Min/Max Instead of Sort](#710)
-   - 7.11 [Use Set/Map for O(1) Lookups](#711)
-   - 7.12 [Use toSorted() Instead of sort() for Immutability](#712)
+   - 7.2 [Cache Storage API Calls](#72)
 8. [Advanced Patterns](#8-advanced-patterns) — **LOW**
    - 8.1 [Store Event Handlers in Refs](#81)
    - 8.2 [useLatest for Stable Callback Refs](#82)
@@ -77,165 +65,9 @@ Comprehensive performance optimization guide for React and Next.js applications,
 
 Waterfalls are the #1 performance killer. Each sequential await adds full network latency. Eliminating them yields the largest gains.
 
-### 1.1 Defer Await Until Needed
+The framework-neutral rules, such as deferring awaits, `Promise.all()`, dependency-based parallelization and request handlers, are in `best-practices-bun`. In React, Suspense keeps slow data from holding back the whole page.
 
-Move `await` operations into the branches where they're actually used to avoid blocking code paths that don't need them.
-
-**Incorrect: blocks both branches**
-
-```typescript
-async function handleRequest(userId: string, skipProcessing: boolean) {
-  const userData = await fetchUserData(userId)
-
-  if (skipProcessing) {
-    // Returns immediately but still waited for userData
-    return { skipped: true }
-  }
-
-  // Only this branch uses userData
-  return processUserData(userData)
-}
-```
-
-**Correct: only blocks when needed**
-
-```typescript
-async function handleRequest(userId: string, skipProcessing: boolean) {
-  if (skipProcessing) {
-    // Returns immediately without waiting
-    return { skipped: true }
-  }
-
-  // Fetch only when needed
-  const userData = await fetchUserData(userId)
-  return processUserData(userData)
-}
-```
-
-**Another example: early return optimization**
-
-```typescript
-// Incorrect: always fetches permissions
-async function updateResource(resourceId: string, userId: string) {
-  const permissions = await fetchPermissions(userId)
-  const resource = await getResource(resourceId)
-
-  if (!resource) {
-    return { error: 'Not found' }
-  }
-
-  if (!permissions.canEdit) {
-    return { error: 'Forbidden' }
-  }
-
-  return await updateResourceData(resource, permissions)
-}
-
-// Correct: fetches only when needed
-async function updateResource(resourceId: string, userId: string) {
-  const resource = await getResource(resourceId)
-
-  if (!resource) {
-    return { error: 'Not found' }
-  }
-
-  const permissions = await fetchPermissions(userId)
-
-  if (!permissions.canEdit) {
-    return { error: 'Forbidden' }
-  }
-
-  return await updateResourceData(resource, permissions)
-}
-```
-
-This optimization is especially valuable when the skipped branch is frequently taken, or when the deferred operation is expensive.
-
-### 1.2 Dependency-Based Parallelization
-
-For operations with partial dependencies, use `better-all` to maximize parallelism. It automatically starts each task at the earliest possible moment.
-
-**Incorrect: profile waits for config unnecessarily**
-
-```typescript
-const [user, config] = await Promise.all([
-  fetchUser(),
-  fetchConfig()
-])
-const profile = await fetchProfile(user.id)
-```
-
-**Correct: config and profile run in parallel**
-
-```typescript
-import { all } from 'better-all'
-
-const { user, config, profile } = await all({
-  async user() { return fetchUser() },
-  async config() { return fetchConfig() },
-  async profile() {
-    return fetchProfile((await this.$.user).id)
-  }
-})
-```
-
-Reference: [https://github.com/shuding/better-all](https://github.com/shuding/better-all)
-
-### 1.3 Prevent Waterfall Chains in API Routes
-
-In API routes and Server Actions, start independent operations immediately, even if you don't await them yet.
-
-**Incorrect: config waits for auth, data waits for both**
-
-```typescript
-export async function GET(request: Request) {
-  const session = await auth()
-  const config = await fetchConfig()
-  const data = await fetchData(session.user.id)
-  return Response.json({ data, config })
-}
-```
-
-**Correct: auth and config start immediately**
-
-```typescript
-export async function GET(request: Request) {
-  const sessionPromise = auth()
-  const configPromise = fetchConfig()
-  const session = await sessionPromise
-  const [config, data] = await Promise.all([
-    configPromise,
-    fetchData(session.user.id)
-  ])
-  return Response.json({ data, config })
-}
-```
-
-For operations with more complex dependency chains, use `better-all` to automatically maximize parallelism (see Dependency-Based Parallelization).
-
-### 1.4 Promise.all() for Independent Operations
-
-When async operations have no interdependencies, execute them concurrently using `Promise.all()`.
-
-**Incorrect: sequential execution, 3 round trips**
-
-```typescript
-const user = await fetchUser()
-const posts = await fetchPosts()
-const comments = await fetchComments()
-```
-
-**Correct: parallel execution, 1 round trip**
-
-```typescript
-const [user, posts, comments] = await Promise.all([
-  fetchUser(),
-  fetchPosts(),
-  fetchComments()
-])
-```
-
-### 1.5 Strategic Suspense Boundaries
+### 1.1 Strategic Suspense Boundaries
 
 Instead of awaiting data in async components before returning JSX, use Suspense boundaries to show the wrapper UI faster while data loads.
 
@@ -494,38 +326,7 @@ The `typeof window !== 'undefined'` check prevents bundling preloaded modules fo
 
 Optimizing server-side rendering and data fetching eliminates server-side waterfalls and reduces response times.
 
-### 3.1 Cross-Request LRU Caching
-
-`React.cache()` only works within one request. For data shared across sequential requests (user clicks button A then button B), use an LRU cache.
-
-**Implementation:**
-
-```typescript
-import { LRUCache } from 'lru-cache'
-
-const cache = new LRUCache<string, any>({
-  max: 1000,
-  ttl: 5 * 60 * 1000  // 5 minutes
-})
-
-export async function getUser(id: string) {
-  const cached = cache.get(id)
-  if (cached) return cached
-
-  const user = await db.user.findUnique({ where: { id } })
-  cache.set(id, user)
-  return user
-}
-
-// Request 1: DB query, result cached
-// Request 2: cache hit, no DB query
-```
-
-Use when sequential user actions hit multiple endpoints needing the same data within seconds. In serverless, consider Redis for cross-process caching.
-
-Reference: [https://github.com/isaacs/node-lru-cache](https://github.com/isaacs/node-lru-cache)
-
-### 3.2 Minimize Serialization at RSC Boundaries
+### 3.1 Minimize Serialization at RSC Boundaries
 
 The React Server/Client boundary serializes all object properties. Only pass fields that the client actually uses.
 
@@ -557,7 +358,7 @@ function Profile({ name }: { name: string }) {
 }
 ```
 
-### 3.3 Parallel Data Fetching with Component Composition
+### 3.2 Parallel Data Fetching with Component Composition
 
 React Server Components execute sequentially within a tree. Restructure with composition to parallelize data fetching.
 
@@ -630,7 +431,7 @@ export default function Page() {
 }
 ```
 
-### 3.4 Per-Request Deduplication with React.cache()
+### 3.3 Per-Request Deduplication with React.cache()
 
 Use `React.cache()` for server-side request deduplication. Authentication and database queries benefit most.
 
@@ -1274,11 +1075,11 @@ function Badge({ count }: { count: number }) {
 
 ---
 
-## 7. JavaScript Performance
+## 7. Browser APIs
 
 **Impact: LOW-MEDIUM**
 
-Micro-optimizations for hot paths can add up to meaningful improvements.
+DOM style changes and storage reads are synchronous, so in hot paths they add up. The framework-neutral hot-path rules, such as index maps, Set and Map lookups, hoisted regular expressions and `toSorted()`, are in `best-practices-bun`.
 
 ### 7.1 Batch DOM CSS Changes
 
@@ -1356,135 +1157,7 @@ function Box({ isHighlighted }: { isHighlighted: boolean }) {
 
 Prefer CSS classes over inline styles when possible. Classes are cached by the browser and provide better separation of concerns.
 
-### 7.2 Build Index Maps for Repeated Lookups
-
-Multiple `.find()` calls by the same key should use a Map.
-
-**Incorrect (O(n) per lookup):**
-
-```typescript
-function processOrders(orders: Order[], users: User[]) {
-  return orders.map(order => ({
-    ...order,
-    user: users.find(u => u.id === order.userId)
-  }))
-}
-```
-
-**Correct (O(1) per lookup):**
-
-```typescript
-function processOrders(orders: Order[], users: User[]) {
-  const userById = new Map(users.map(u => [u.id, u]))
-
-  return orders.map(order => ({
-    ...order,
-    user: userById.get(order.userId)
-  }))
-}
-```
-
-Build map once (O(n)), then all lookups are O(1).
-
-For 1000 orders × 1000 users: 1M ops → 2K ops.
-
-### 7.3 Cache Property Access in Loops
-
-Cache object property lookups in hot paths.
-
-**Incorrect: 3 lookups × N iterations**
-
-```typescript
-for (let i = 0; i < arr.length; i++) {
-  process(obj.config.settings.value)
-}
-```
-
-**Correct: 1 lookup total**
-
-```typescript
-const value = obj.config.settings.value
-const len = arr.length
-for (let i = 0; i < len; i++) {
-  process(value)
-}
-```
-
-### 7.4 Cache Repeated Function Calls
-
-Use a module-level Map to cache function results when the same function is called repeatedly with the same inputs during render.
-
-**Incorrect: redundant computation**
-
-```typescript
-function ProjectList({ projects }: { projects: Project[] }) {
-  return (
-    <div>
-      {projects.map(project => {
-        // slugify() called 100+ times for same project names
-        const slug = slugify(project.name)
-
-        return <ProjectCard key={project.id} slug={slug} />
-      })}
-    </div>
-  )
-}
-```
-
-**Correct: cached results**
-
-```typescript
-// Module-level cache
-const cachedSlugify = new Map<string, any>()
-
-function getCachedSlug(text: string): string {
-  if (cachedSlugify.has(text)) {
-    return cachedSlugify.get(text)
-  }
-  const result = slugify(text)
-  cachedSlugify.set(text, result)
-  return result
-}
-
-function ProjectList({ projects }: { projects: Project[] }) {
-  return (
-    <div>
-      {projects.map(project => {
-        // Computed only once per unique project name
-        const slug = getCachedSlug(project.name)
-
-        return <ProjectCard key={project.id} slug={slug} />
-      })}
-    </div>
-  )
-}
-```
-
-**Simpler pattern for single-value functions:**
-
-```typescript
-let isLoggedInCache: boolean | null = null
-
-function isLoggedIn(): boolean {
-  if (isLoggedInCache !== null) {
-    return isLoggedInCache
-  }
-
-  isLoggedInCache = document.cookie.includes('auth=')
-  return isLoggedInCache
-}
-
-// Clear cache when auth changes
-function onAuthChange() {
-  isLoggedInCache = null
-}
-```
-
-Use a Map (not a hook) so it works everywhere: utilities, event handlers, not just React components.
-
-Reference: [https://vercel.com/blog/how-we-made-the-vercel-dashboard-twice-as-fast](https://vercel.com/blog/how-we-made-the-vercel-dashboard-twice-as-fast)
-
-### 7.5 Cache Storage API Calls
+### 7.2 Cache Storage API Calls
 
 `localStorage`, `sessionStorage`, and `document.cookie` are synchronous and expensive. Cache reads in memory.
 
@@ -1529,244 +1202,6 @@ document.addEventListener('visibilitychange', () => {
     storageCache.clear()
   }
 })
-```
-
-### 7.6 Combine Multiple Array Iterations
-
-Multiple `.filter()` or `.map()` calls iterate the array multiple times. Combine into one loop.
-
-**Incorrect: 3 iterations**
-
-```typescript
-const admins = users.filter(u => u.isAdmin)
-const testers = users.filter(u => u.isTester)
-const inactive = users.filter(u => !u.isActive)
-```
-
-**Correct: 1 iteration**
-
-```typescript
-const admins: User[] = []
-const testers: User[] = []
-const inactive: User[] = []
-
-for (const user of users) {
-  if (user.isAdmin) admins.push(user)
-  if (user.isTester) testers.push(user)
-  if (!user.isActive) inactive.push(user)
-}
-```
-
-### 7.7 Early Length Check for Array Comparisons
-
-When comparing arrays with expensive operations (sorting, deep equality, serialization), check lengths first. If lengths differ, the arrays cannot be equal.
-
-In real-world applications, this optimization is especially valuable when the comparison runs in hot paths (event handlers, render loops).
-
-**Incorrect: always runs expensive comparison**
-
-```typescript
-function hasChanges(current: string[], original: string[]) {
-  // Always sorts and joins, even when lengths differ
-  return current.sort().join() !== original.sort().join()
-}
-```
-
-Two O(n log n) sorts run even when `current.length` is 5 and `original.length` is 100.
-
-**Correct (O(1) length check first):**
-
-```typescript
-function hasChanges(current: string[], original: string[]) {
-  // Early return if lengths differ
-  if (current.length !== original.length) {
-    return true
-  }
-  // Only sort when lengths match
-  const currentSorted = current.toSorted()
-  const originalSorted = original.toSorted()
-  for (let i = 0; i < currentSorted.length; i++) {
-    if (currentSorted[i] !== originalSorted[i]) {
-      return true
-    }
-  }
-  return false
-}
-```
-
-This approach avoids sorting when lengths differ, avoiding both computational overhead and memory consumption for joined strings.
-
-### 7.8 Early Return from Functions
-
-Return early when result is determined to skip unnecessary processing.
-
-**Incorrect: processes all items even after finding answer**
-
-```typescript
-function validateUsers(users: User[]) {
-  let hasError = false
-  let errorMessage = ''
-
-  for (const user of users) {
-    if (!user.email) {
-      hasError = true
-      errorMessage = 'Email required'
-    }
-    if (!user.name) {
-      hasError = true
-      errorMessage = 'Name required'
-    }
-    // Continues checking all users even after error found
-  }
-
-  return hasError ? { valid: false, error: errorMessage } : { valid: true }
-}
-```
-
-**Correct: returns immediately on first error**
-
-```typescript
-function validateUsers(users: User[]) {
-  for (const user of users) {
-    if (!user.email) {
-      return { valid: false, error: 'Email required' }
-    }
-    if (!user.name) {
-      return { valid: false, error: 'Name required' }
-    }
-  }
-
-  return { valid: true }
-}
-```
-
-### 7.9 Hoist RegExp Creation
-
-Don't create RegExp inside render. Hoist to module scope or memoize with `useMemo()`.
-
-**Incorrect: new RegExp every render**
-
-```tsx
-function Highlighter({ text, query }: Props) {
-  const regex = new RegExp(`(${query})`, 'gi')
-  const parts = text.split(regex)
-  return <>{parts.map((part, i) => ...)}</>
-}
-```
-
-**Correct: memoize or hoist**
-
-```typescript
-const regex = /foo/g
-```
-
-Note: RegExp with global flag (`g`) has stateful `lastIndex`. Cache and reset as needed.
-
-### 7.10 Use Loop for Min/Max Instead of Sort
-
-Finding the smallest or largest element only requires a single pass. Sorting is wasteful.
-
-**Incorrect (O(n log n) - sort to find latest):**
-
-```typescript
-interface Project {
-  id: string
-  name: string
-  updatedAt: number
-}
-
-function getLatestProject(projects: Project[]) {
-  const sorted = [...projects].sort((a, b) => b.updatedAt - a.updatedAt)
-  return sorted[0]
-}
-```
-
-**Correct (O(n) - single loop):**
-
-```typescript
-function getLatestProject(projects: Project[]) {
-  if (projects.length === 0) return null
-
-  let latest = projects[0]
-
-  for (let i = 1; i < projects.length; i++) {
-    if (projects[i].updatedAt > latest.updatedAt) {
-      latest = projects[i]
-    }
-  }
-
-  return latest
-}
-
-function getOldestAndNewest(projects: Project[]) {
-  if (projects.length === 0) return { oldest: null, newest: null }
-
-  let oldest = projects[0]
-  let newest = projects[0]
-
-  for (let i = 1; i < projects.length; i++) {
-    if (projects[i].updatedAt < oldest.updatedAt) oldest = projects[i]
-    if (projects[i].updatedAt > newest.updatedAt) newest = projects[i]
-  }
-
-  return { oldest, newest }
-}
-```
-
-Single pass through the array, no copying, no sorting.
-
-### 7.11 Use Set/Map for O(1) Lookups
-
-Convert arrays to Set/Map for repeated membership checks.
-
-**Incorrect (O(n) per check):**
-
-```typescript
-const allowedIds = ['a', 'b', 'c', ...]
-items.filter(item => allowedIds.includes(item.id))
-```
-
-**Correct (O(1) per check):**
-
-```typescript
-const allowedIds = new Set(['a', 'b', 'c', ...])
-items.filter(item => allowedIds.has(item.id))
-```
-
-### 7.12 Use toSorted() Instead of sort() for Immutability
-
-`.sort()` mutates the array in place, which can cause bugs with React state and props. Use `.toSorted()` to create a new sorted array without mutation.
-
-**Incorrect: mutates original array**
-
-```typescript
-function UserList({ users }: { users: User[] }) {
-  // Mutates the users prop array!
-  const sorted = useMemo(
-    () => users.sort((a, b) => a.name.localeCompare(b.name)),
-    [users]
-  )
-  return <div>{sorted.map(renderUser)}</div>
-}
-```
-
-**Correct: creates new array**
-
-```typescript
-function UserList({ users }: { users: User[] }) {
-  // Creates new sorted array, original unchanged
-  const sorted = useMemo(
-    () => users.toSorted((a, b) => a.name.localeCompare(b.name)),
-    [users]
-  )
-  return <div>{sorted.map(renderUser)}</div>
-}
-```
-
-**Browser support fallback:**
-
-```typescript
-const sorted = [...items].sort((a, b) => a.value - b.value)
 ```
 
 ---

@@ -46,14 +46,14 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
   core: { rules: ['clean-code.md'], skills: ['review-generic'], agents: ['reviewer'], requires: [] },
   js: {
     rules: ['js/typescript.md', 'js/lint-and-format.md', 'js/bun.md'],
-    skills: ['review-bun'],
+    skills: ['review-bun', 'best-practices-bun'],
     agents: ['reviewer-b'],
     requires: [],
   },
-  // review-react validates the way js/lint-and-format.md says, so React never ships without JS/TS.
+  // reviewer-r preloads review-bun and best-practices-bun, so React never ships without JS/TS.
   react: {
     rules: ['js/react.md'],
-    skills: ['review-react', 'react-best-practices'],
+    skills: ['review-react', 'best-practices-react'],
     agents: ['reviewer-r'],
     requires: ['js'],
   },

@@ -6,18 +6,47 @@ paths:
 
 # Bun
 
-Applies to code that Bun executes: files run with `bun <file>` or a `#!/usr/bin/env bun` shebang, `Bun.serve` servers and `bun test` suites. A `bun.lock` only means Bun installs the packages: frameworks such as Next.js still run on Node, and browser or React Native code never runs on Bun. When unsure, keep code runtime-neutral and don't use `Bun.*`.
+Bun is the toolchain for all TypeScript and JavaScript: it installs packages, runs scripts and runs tests, unless a project's lockfile shows another package manager. Its runtime APIs are narrower: they only exist in code Bun executes, meaning files run with `bun <file>` or a Bun shebang such as `#!/usr/bin/env -S bun`, `Bun.serve` servers and `bun test` suites. Frameworks such as Next.js still run on Node, and browser or React Native code never runs on Bun. When unsure, keep code runtime-neutral and don't use `Bun.*`.
 
 ## Tooling
 
 - `bun <file>` runs a file, `bun run <script>` a package script, `bunx <package>` a package binary. `bun install` and `bun add` manage dependencies.
 - Type-check with `tsc --noEmit` through the `lint` scripts, not with `bun check` or `bun --check`: a `check` script in `package.json` hijacks `bun check`, and `bun --check <file>` runs the file after checking it.
-- New tests use `bun test` with `bun:test`. Leave existing Jest, Vitest or Playwright suites on their own runners.
-- Bun loads `.env` files itself, so don't add `dotenv`.
+- New tests use `bun test` with `bun:test` where the package's `test` script runs `bun test`. In a package on Jest, Vitest or Playwright, write them for that runner.
+- In code Bun executes, Bun loads `.env` files itself, so don't add `dotenv` there.
+
+## Executable scripts
+
+A script meant to be run as a command:
+
+- Starts with the shebang `#!/usr/bin/env -S bun`.
+- Is executable (`chmod +x`), so git records it as mode `100755`.
+- Defines its usage text as a `USAGE` constant in its first lines, right after the shebang and imports. On `-h` or `--help` it prints `USAGE` and exits with code 0:
+
+  ```ts
+  #!/usr/bin/env -S bun
+
+  import { parseArgs } from 'node:util'
+
+  const USAGE = `Usage: resize-images <folder> [--width <px>]
+
+  Resizes every image in <folder> to the given width.`
+
+  const { values, positionals } = parseArgs({
+    args: Bun.argv.slice(2),
+    allowPositionals: true,
+    options: { help: { type: 'boolean', short: 'h' }, width: { type: 'string' } },
+  })
+
+  if (values.help) {
+    console.log(USAGE)
+    process.exit(0)
+  }
+  ```
 
 ## APIs
 
-In new code, prefer Bun's built-ins to Node APIs and npm packages:
+In new code that Bun executes, prefer Bun's built-ins to Node APIs and npm packages:
 
 | Task | Use | Instead of |
 | --- | --- | --- |

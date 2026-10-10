@@ -20,8 +20,8 @@ The core works for any language. Each other set adds one language or framework a
 | Set | Rules | Skills | Agents |
 | --- | --- | --- | --- |
 | Core (`core`) | `clean-code.md` | `review-generic` | `reviewer` |
-| JS/TS and Bun (`js`) | `js/typescript.md`, `js/lint-and-format.md`, `js/bun.md` | `review-bun` | `reviewer-b` |
-| React (`react`, needs `js`) | `js/react.md` | `review-react`, `react-best-practices` | `reviewer-r` |
+| JS/TS and Bun (`js`) | `js/typescript.md`, `js/lint-and-format.md`, `js/bun.md` | `review-bun`, `best-practices-bun` | `reviewer-b` |
+| React (`react`, needs `js`) | `js/react.md` | `review-react`, `best-practices-react` | `reviewer-r` |
 
 `scripts/copy-set.ts` holds this mapping for the installer and `lint:claude`, so a new rule, skill or agent goes into a set there too: lint fails while a copy-set file is in no set or in two, or a listed one is missing. Only files git would commit count, so gitignored ones never ship.
 
@@ -52,11 +52,9 @@ Run `bun scripts/install.ts <target> [--dry-run] [--sets core,js,react] [--force
 
 ## Third-party skills
 
-Kept under their upstream names with their files unmodified, so they can be re-pulled:
+None at the moment. A vendored skill keeps its upstream name and its files unmodified, so it can be re-pulled; editing one makes it ours, so rename it and drop it from this list.
 
-- `react-best-practices`: Vercel Engineering (MIT), from davila7/claude-code-templates `main` at `b84033e` (2026-10-12), folder `cli-tool/components/skills/web-development/react-best-practices/`. Vendored without its unreferenced `references/rules/` folder (46 files, upstream's `download_rules.sh` refresh script among them): to re-pull, copy the folder and drop `references/rules/` again. `SKILL.md` and `references/react-performance-guidelines.md` are byte-identical to upstream.
-
-An edited third-party skill becomes ours: rename it and remove it from this list.
+`best-practices-react` and `best-practices-bun` were forked that way from Vercel Engineering's react-best-practices (MIT); keep the attribution in their files and the `LICENSE.txt` in each folder, since the installer copies them into every project.
 
 ## This repo
 

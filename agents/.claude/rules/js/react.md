@@ -5,7 +5,7 @@ paths:
 
 # React
 
-When you apply the `react-best-practices` guide:
+When you apply the `best-practices-react` guide:
 
 - Fix what the code shows. Don't add memoization or caching on speculation: the guide itself says to measure first and optimize incrementally.
 - Before applying a bundle rule, check whether the framework already handles it, for example Next.js `optimizePackageImports` for barrel imports.

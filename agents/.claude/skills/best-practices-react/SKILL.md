@@ -1,16 +1,14 @@
 ---
-name: react-best-practices
-description: Comprehensive React and Next.js performance optimization guide with 40+ rules for eliminating waterfalls, optimizing bundles, and improving rendering. Use when optimizing React apps, reviewing performance, or refactoring components.
-version: 1.0.0
-author: Vercel Engineering
+name: best-practices-react
+description: React and Next.js performance guide with 28 rules on Suspense, bundle size, server components, client data fetching, re-renders, rendering and browser APIs. Builds on best-practices-bun, which holds the framework-neutral rules such as async waterfalls and hot-path JavaScript. Use when optimizing React apps, reviewing their performance, or refactoring components; preloaded by reviewer-r.
 license: MIT
-tags: [React, Next.js, Performance, Optimization, Best Practices, Bundle Size, Rendering, Server Components]
-dependencies: []
 ---
 
 # React Best Practices - Performance Optimization
 
-Comprehensive performance optimization guide for React and Next.js applications with 40+ rules organized by impact level. Designed to help developers eliminate performance bottlenecks and follow best practices.
+Performance optimization guide for React and Next.js applications with 28 rules organized by impact level. It builds on `best-practices-bun`, which holds the rules that apply to any TypeScript: async waterfalls, cross-request caching and hot-path JavaScript.
+
+Forked from Vercel Engineering's react-best-practices v0.1.0 (MIT, January 2026), as vendored from davila7/claude-code-templates at `b84033e`. `LICENSE.txt` in this folder carries the license notice.
 
 ## When to use this skill
 
@@ -21,38 +19,28 @@ Comprehensive performance optimization guide for React and Next.js applications 
 - Implementing new features with performance in mind
 - Debugging slow rendering or loading issues
 - Reducing bundle size
-- Eliminating request waterfalls
+- Eliminating request waterfalls, together with `best-practices-bun`
 
 **Key areas covered:**
-- **Eliminating Waterfalls** (CRITICAL): Prevent sequential async operations
+- **Eliminating Waterfalls** (CRITICAL): Stream content with Suspense instead of blocking on data
 - **Bundle Size Optimization** (CRITICAL): Reduce initial JavaScript payload
 - **Server-Side Performance** (HIGH): Optimize RSC and data fetching
 - **Client-Side Data Fetching** (MEDIUM-HIGH): Implement efficient caching
 - **Re-render Optimization** (MEDIUM): Minimize unnecessary re-renders
 - **Rendering Performance** (MEDIUM): Optimize browser rendering
-- **JavaScript Performance** (LOW-MEDIUM): Micro-optimizations for hot paths
+- **Browser APIs** (LOW-MEDIUM): Batch DOM style changes and cache storage reads
 - **Advanced Patterns** (LOW): Specialized techniques for edge cases
 
 ## Quick reference
 
 ### Critical priorities
 
-1. **Defer await until needed** - Move awaits into branches where they're used
-2. **Use Promise.all()** - Parallelize independent async operations
-3. **Avoid barrel imports** - Import directly from source files
-4. **Dynamic imports** - Lazy-load heavy components
-5. **Strategic Suspense** - Stream content while showing layout
+1. **Avoid barrel imports** - Import directly from source files
+2. **Dynamic imports** - Lazy-load heavy components
+3. **Strategic Suspense** - Stream content while showing layout
+4. **No async waterfalls** - Defer awaits and run independent work with `Promise.all()`, as `best-practices-bun` describes
 
 ### Common patterns
-
-**Parallel data fetching:**
-```typescript
-const [user, posts, comments] = await Promise.all([
-  fetchUser(),
-  fetchPosts(),
-  fetchComments()
-])
-```
 
 **Direct imports:**
 ```tsx
@@ -77,7 +65,7 @@ const MonacoEditor = dynamic(
 
 The complete performance guidelines are available in the references folder:
 
-- **react-performance-guidelines.md**: Complete guide with all 40+ rules, code examples, and impact analysis
+- **react-performance-guidelines.md**: Complete guide with all 28 rules, code examples, and impact analysis
 
 Each rule includes:
 - Incorrect/correct code comparisons
@@ -88,11 +76,7 @@ Each rule includes:
 ## Categories overview
 
 ### 1. Eliminating Waterfalls (CRITICAL)
-Waterfalls are the #1 performance killer. Each sequential await adds full network latency.
-- Defer await until needed
-- Dependency-based parallelization
-- Prevent waterfall chains in API routes
-- Promise.all() for independent operations
+Waterfalls are the #1 performance killer. Each sequential await adds full network latency. The framework-neutral rules are in `best-practices-bun`; this guide adds:
 - Strategic Suspense boundaries
 
 ### 2. Bundle Size Optimization (CRITICAL)
@@ -104,8 +88,7 @@ Reducing initial bundle size improves Time to Interactive and Largest Contentful
 - Preload based on user intent
 
 ### 3. Server-Side Performance (HIGH)
-Optimize server-side rendering and data fetching.
-- Cross-request LRU caching
+Optimize server-side rendering and data fetching. Caching across requests is in `best-practices-bun`.
 - Minimize serialization at RSC boundaries
 - Parallel data fetching with component composition
 - Per-request deduplication with React.cache()
@@ -134,20 +117,10 @@ Optimize the browser rendering process.
 - Use Activity component for show/hide
 - Use explicit conditional rendering
 
-### 7. JavaScript Performance (LOW-MEDIUM)
-Micro-optimizations for hot paths.
+### 7. Browser APIs (LOW-MEDIUM)
+Synchronous browser calls in hot paths. The general hot-path rules are in `best-practices-bun`.
 - Batch DOM CSS changes
-- Build index maps for repeated lookups
-- Cache property access in loops
-- Cache repeated function calls
 - Cache storage API calls
-- Combine multiple array iterations
-- Early length check for array comparisons
-- Early return from functions
-- Hoist RegExp creation
-- Use loop for min/max instead of sort
-- Use Set/Map for O(1) lookups
-- Use toSorted() instead of sort()
 
 ### 8. Advanced Patterns (LOW)
 Specialized techniques for edge cases.
@@ -177,19 +150,17 @@ When optimizing a React application:
 
 ❌ **Don't:**
 - Use barrel imports from large libraries
-- Block parallel operations with sequential awaits
 - Re-render entire trees when only part needs updating
 - Load analytics/tracking in the critical path
-- Mutate arrays with .sort() instead of .toSorted()
 - Create RegExp or heavy objects inside render
 
 ✅ **Do:**
 - Import directly from source files
-- Use Promise.all() for independent operations
 - Memoize expensive components
 - Lazy-load non-critical code
-- Use immutable array methods
 - Hoist static objects outside components
+
+The framework-neutral pitfalls, such as sequential awaits and `sort()` mutating arrays, are in `best-practices-bun`.
 
 ## Resources
 
@@ -200,10 +171,3 @@ When optimizing a React application:
 - [Vercel Dashboard Performance](https://vercel.com/blog/how-we-made-the-vercel-dashboard-twice-as-fast)
 - [better-all Library](https://github.com/shuding/better-all)
 - [node-lru-cache](https://github.com/isaacs/node-lru-cache)
-
-## Version history
-
-**v0.1.0** (January 2026)
-- Initial release from Vercel Engineering
-- 40+ performance rules across 8 categories
-- Comprehensive code examples and impact analysis
