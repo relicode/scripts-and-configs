@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 // Structural checks for the copy set (.claude/rules, skills and agents) and the sets' MCP servers
 // in .mcp.json. Biome skips .claude/, so this is what catches a renamed skill folder, a dangling
 // `skills:` entry, rule frontmatter that no longer parses (Claude Code then loads that rule
@@ -5,6 +7,7 @@
 // is malformed, unpinned or has a literal env or headers value.
 
 import { readdir, stat } from 'node:fs/promises'
+import { join } from 'node:path'
 
 import {
   AGENTS_FOLDER,
@@ -23,6 +26,12 @@ import {
   SKILLS_FOLDER,
 } from './copy-set.ts'
 import { loadServers } from './mcp-servers.ts'
+
+const USAGE = `Usage: bun scripts/lint-claude.ts
+
+Checks the copy set in .claude/ and the MCP servers in .mcp.json: names, preloaded skills, rule
+frontmatter, language-set membership and server definitions.`
+const HELP_FLAGS = new Set(['-h', '--help'])
 
 const SKILLS_DIR = `${CLAUDE_DIR_NAME}/${SKILLS_FOLDER}`
 const AGENTS_DIR = `${CLAUDE_DIR_NAME}/${AGENTS_FOLDER}`
@@ -111,6 +120,14 @@ const checkRule = async (file: string) => {
     `${path}: paths must be a non-empty list of globs`
   )
 }
+
+if (Bun.argv.slice(2).some((arg) => HELP_FLAGS.has(arg))) {
+  console.log(USAGE)
+  process.exit(0)
+}
+
+// The .claude/ paths here are relative, so check this repository wherever the script is started from.
+process.chdir(join(import.meta.dir, '..'))
 
 const skillEntries = await listEntries(SKILLS_DIR)
 const agentEntries = await listEntries(AGENTS_DIR)

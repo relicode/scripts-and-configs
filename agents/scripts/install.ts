@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 // Installs language sets from this repo's copy set into another repository's .claude/, and merges
 // the sets' MCP servers into its .mcp.json:
 //   bun scripts/install.ts <target> [--dry-run] [--sets core,js,web,react,next,mui,astro,mobile,aws] [--force]
