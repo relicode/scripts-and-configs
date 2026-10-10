@@ -2,6 +2,12 @@
 
 How to write and change code in this project. Reviewers check changes against it.
 
+## Existing style wins
+
+- In a file or module with an established style, new and changed code follows that style, even where the house rules in `.claude/rules/` say otherwise.
+- The house rules apply to new files and to code without an established pattern.
+- Style means conventions that don't change behavior, such as naming, declaration forms, file layout and idioms. It never excuses bugs, security holes, failing checks or bad practices such as loose types, swallowed errors and floating promises.
+
 ## Principles
 
 - Give each function, module and component one responsibility.

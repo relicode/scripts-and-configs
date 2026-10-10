@@ -1,18 +1,28 @@
 // Structural checks for the copy set (.claude/rules, skills and agents). Biome skips
-// .claude/, so this is what catches a renamed skill folder, a dangling `skills:` entry
-// or rule frontmatter that no longer parses (Claude Code then loads that rule everywhere).
+// .claude/, so this is what catches a renamed skill folder, a dangling `skills:` entry,
+// rule frontmatter that no longer parses (Claude Code then loads that rule everywhere)
+// or a file that isn't in exactly one language set.
 
 import { readdir, stat } from 'node:fs/promises'
 
-type Frontmatter = Record<string, unknown>
+import {
+  AGENTS_FOLDER,
+  CLAUDE_DIR_NAME,
+  COMMANDS_FOLDER,
+  findSetProblems,
+  hasFrontmatterFence,
+  listCopySetFiles,
+  RULES_FOLDER,
+  readFrontmatter,
+  SKILL_FILE,
+  SKILLS_FOLDER,
+} from './copy-set.ts'
 
-const CLAUDE_DIR = '.claude'
-const SKILLS_DIR = `${CLAUDE_DIR}/skills`
-const AGENTS_DIR = `${CLAUDE_DIR}/agents`
-const RULES_DIR = `${CLAUDE_DIR}/rules`
-const COMMANDS_DIR = `${CLAUDE_DIR}/commands`
+const SKILLS_DIR = `${CLAUDE_DIR_NAME}/${SKILLS_FOLDER}`
+const AGENTS_DIR = `${CLAUDE_DIR_NAME}/${AGENTS_FOLDER}`
+const RULES_DIR = `${CLAUDE_DIR_NAME}/${RULES_FOLDER}`
+const COMMANDS_DIR = `${CLAUDE_DIR_NAME}/${COMMANDS_FOLDER}`
 const MAX_DESCRIPTION_LENGTH = 1024
-const FRONTMATTER_PATTERN = /^---\n([\s\S]*?)\n---/
 
 const problemIf = (condition: boolean, problem: string) => (condition ? [problem] : [])
 
@@ -30,19 +40,8 @@ const isDirectory = async (path: string) => {
 
 const listEntries = async (dir: string) => ((await isDirectory(dir)) ? readdir(dir, { withFileTypes: true }) : [])
 
-const readFrontmatter = async (path: string): Promise<Frontmatter | undefined> => {
-  const match = (await Bun.file(path).text()).match(FRONTMATTER_PATTERN)
-  if (!match) return undefined
-  try {
-    const parsed: unknown = Bun.YAML.parse(match[1] ?? '')
-    return typeof parsed === 'object' && parsed !== null ? (parsed as Frontmatter) : undefined
-  } catch {
-    return undefined
-  }
-}
-
 const checkSkill = async (dir: string) => {
-  const path = `${SKILLS_DIR}/${dir}/SKILL.md`
+  const path = `${SKILLS_DIR}/${dir}/${SKILL_FILE}`
   if (!(await Bun.file(path).exists())) return [`${path}: missing; every folder in skills/ needs one`]
   const frontmatter = await readFrontmatter(path)
   if (!frontmatter) return [`${path}: frontmatter is missing or doesn't parse`]
@@ -75,7 +74,7 @@ const checkAgent = async (file: string, skillNames: ReadonlySet<string>) => {
 
 const checkRule = async (file: string) => {
   const path = `${RULES_DIR}/${file}`
-  if (!(await Bun.file(path).text()).startsWith('---\n')) return []
+  if (!hasFrontmatterFence(await Bun.file(path).text())) return []
   const frontmatter = await readFrontmatter(path)
   if (!frontmatter) return [`${path}: frontmatter doesn't parse, so the rule would load everywhere`]
   return problemIf(
@@ -109,6 +108,7 @@ const problems = [
       ...ruleFiles.map(checkRule),
     ])
   ).flat(),
+  ...(await findSetProblems(await listCopySetFiles())),
 ]
 
 if (problems.length > 0) {

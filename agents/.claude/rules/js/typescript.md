@@ -7,6 +7,8 @@ paths:
 
 # TypeScript and JavaScript
 
+In a file or module with an established style, that style wins over these rules, within the limits "Existing style wins" in `.claude/rules/clean-code.md` sets.
+
 - Use `import`, never `require`. `.cjs` files are CommonJS and keep `require`.
 - Write functions as arrow functions assigned to `const`. Single-expression bodies drop the braces: `const double = (n: number) => n * 2`. Use `function` only where arrows can't work: generators, overloads, and assertion functions (`asserts x is T`), whose call sites otherwise fail to type-check.
 - Use `type Name = { … }`, not `interface`.

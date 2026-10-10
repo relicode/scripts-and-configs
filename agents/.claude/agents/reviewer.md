@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Reviews and fixes recently written or modified code that no more specific reviewer-* agent covers, in any language, then runs the project's checks until clean. Use proactively after finishing a logical chunk of code, or when asked to review it. It edits code, so tell it what the user asked for and any deliberate deviations from the house rules, run one reviewer at a time, and don't edit files while it runs. For a report-only review of a PR, use code-review.
-model: opus
+model: inherit
 color: yellow
 skills:
   - review-generic
