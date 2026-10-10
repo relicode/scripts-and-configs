@@ -1,6 +1,7 @@
 ---
 paths:
   - "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
+  - "**/*.astro"
   - "**/package.json"
   - "**/tsconfig*.json"
 ---

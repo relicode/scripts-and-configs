@@ -19,7 +19,7 @@ type LanguageSet = {
   requires: readonly SetName[]
 }
 
-export const SET_NAMES = ['core', 'js', 'react'] as const
+export const SET_NAMES = ['core', 'js', 'react', 'next', 'astro'] as const
 export const CLAUDE_DIR_NAME = '.claude'
 export const RULES_FOLDER = 'rules'
 export const SKILLS_FOLDER = 'skills'
@@ -43,11 +43,16 @@ const LEADING_TABS_PATTERN = /^\t+/
 const TAB_INDENT = '  '
 
 export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
-  core: { rules: ['clean-code.md'], skills: ['review-generic'], agents: ['reviewer'], requires: [] },
+  core: {
+    rules: ['clean-code.md', 'scripts.md'],
+    skills: ['review-generic', 'develop-generic'],
+    agents: ['reviewer'],
+    requires: [],
+  },
   js: {
     rules: ['js/typescript.md', 'js/lint-and-format.md', 'js/bun.md'],
     skills: ['review-bun', 'best-practices-bun'],
-    agents: ['reviewer-b'],
+    agents: ['reviewer-b', 'dev-bun'],
     requires: [],
   },
   // reviewer-r preloads review-bun and best-practices-bun, so React never ships without JS/TS.
@@ -57,6 +62,12 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     agents: ['reviewer-r'],
     requires: ['js'],
   },
+  // dev-next preloads best-practices-react and hands its changes to reviewer-r, so Next.js never ships
+  // without React.
+  next: { rules: [], skills: [], agents: ['dev-next'], requires: ['react'] },
+  // dev-astro preloads best-practices-bun, and the js rules cover .astro files, so Astro never ships
+  // without JS/TS.
+  astro: { rules: [], skills: [], agents: ['dev-astro'], requires: ['js'] },
 }
 
 export const isMissingPathError = (error: unknown) =>

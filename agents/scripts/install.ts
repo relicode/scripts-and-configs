@@ -1,5 +1,5 @@
 // Installs language sets from this repo's copy set into another repository's .claude/:
-//   bun scripts/install.ts <target> [--dry-run] [--sets core,js,react] [--force]
+//   bun scripts/install.ts <target> [--dry-run] [--sets core,js,react,next,astro] [--force]
 // Nothing is written until every check passes. The manifest records what was installed, so a
 // re-install can tell its own files from the project's and notice local edits.
 
@@ -62,7 +62,7 @@ type Plan = {
 
 type Preparation = { plan?: Plan; problems: string[]; warnings: string[]; notes: string[] }
 
-const USAGE = 'Usage: bun scripts/install.ts <target> [--dry-run] [--sets core,js,react] [--force]'
+const USAGE = `Usage: bun scripts/install.ts <target> [--dry-run] [--sets ${SET_NAMES.join(',')}] [--force]`
 const EXIT_OK = 0
 const EXIT_FAILED = 1
 const SOURCE_ROOT = join(import.meta.dir, '..')

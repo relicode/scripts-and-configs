@@ -1,6 +1,6 @@
 ---
 name: best-practices-bun
-description: Performance practices for all TypeScript and JavaScript, since Bun is the toolchain everywhere. Covers async waterfalls, caching across requests, and hot-path techniques such as index maps, Set and Map lookups, hoisted regular expressions and toSorted. Use when writing or reviewing performance-sensitive TypeScript; preloaded by reviewer-b and reviewer-r, and the base that best-practices-react builds on.
+description: Performance practices for all TypeScript and JavaScript, since Bun is the toolchain everywhere. Covers async waterfalls, caching across requests, and hot-path techniques such as index maps, Set and Map lookups, hoisted regular expressions and toSorted. Use when writing or reviewing performance-sensitive TypeScript; preloaded by reviewer-b, reviewer-r and the dev agents, and the base that best-practices-react builds on.
 license: MIT
 ---
 
@@ -13,7 +13,7 @@ Adapted from Vercel Engineering's react-best-practices (MIT, January 2026), via 
 ## Applying them
 
 - Fix what the code shows. Don't add caching or micro-optimizations on speculation: measure, and spend effort where it matters. The hot-path rules only pay off in code that runs often, except `toSorted()`, which is about not mutating and applies everywhere.
-- The rules recommend two libraries, as Vercel does: [better-all](https://github.com/shuding/better-all) for dependency-based parallelism and [lru-cache](https://github.com/isaacs/node-lru-cache) for caching across requests. Use them unless the project already has an equivalent; in a review, adding one is a decision to confirm.
+- The rules recommend two libraries, as Vercel does: [better-all](https://github.com/shuding/better-all) for dependency-based parallelism and [lru-cache](https://github.com/isaacs/node-lru-cache) for caching across requests. Use them unless the project already has an equivalent; in a review, or in a dev agent's change that didn't ask for one, adding one is a decision to confirm.
 
 ## Rules
 

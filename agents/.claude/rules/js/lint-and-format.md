@@ -1,6 +1,7 @@
 ---
 paths:
   - "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,css,scss,json,jsonc}"
+  - "**/*.astro"
 ---
 
 # Lint and format

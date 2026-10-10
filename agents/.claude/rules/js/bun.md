@@ -1,6 +1,7 @@
 ---
 paths:
   - "**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
+  - "**/*.astro"
   - "**/package.json"
 ---
 
@@ -17,32 +18,28 @@ Bun is the toolchain for all TypeScript and JavaScript: it installs packages, ru
 
 ## Executable scripts
 
-A script meant to be run as a command:
+Executable TypeScript and JavaScript scripts follow `.claude/rules/scripts.md`, with the shebang `#!/usr/bin/env -S bun`:
 
-- Starts with the shebang `#!/usr/bin/env -S bun`.
-- Is executable (`chmod +x`), so git records it as mode `100755`.
-- Defines its usage text as a `USAGE` constant in its first lines, right after the shebang and imports. On `-h` or `--help` it prints `USAGE` and exits with code 0:
+```ts
+#!/usr/bin/env -S bun
 
-  ```ts
-  #!/usr/bin/env -S bun
+import { parseArgs } from 'node:util'
 
-  import { parseArgs } from 'node:util'
+const USAGE = `Usage: resize-images <folder> [--width <px>]
 
-  const USAGE = `Usage: resize-images <folder> [--width <px>]
+Resizes every image in <folder> to the given width.`
 
-  Resizes every image in <folder> to the given width.`
+const { values, positionals } = parseArgs({
+  args: Bun.argv.slice(2),
+  allowPositionals: true,
+  options: { help: { type: 'boolean', short: 'h' }, width: { type: 'string' } },
+})
 
-  const { values, positionals } = parseArgs({
-    args: Bun.argv.slice(2),
-    allowPositionals: true,
-    options: { help: { type: 'boolean', short: 'h' }, width: { type: 'string' } },
-  })
-
-  if (values.help) {
-    console.log(USAGE)
-    process.exit(0)
-  }
-  ```
+if (values.help) {
+  console.log(USAGE)
+  process.exit(0)
+}
+```
 
 ## APIs
 

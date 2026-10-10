@@ -9,11 +9,15 @@ import {
   AGENTS_FOLDER,
   CLAUDE_DIR_NAME,
   COMMANDS_FOLDER,
+  findOwnerSets,
   findSetProblems,
   hasFrontmatterFence,
+  LANGUAGE_SETS,
   listCopySetFiles,
   RULES_FOLDER,
   readFrontmatter,
+  resolveSets,
+  SET_NAMES,
   SKILL_FILE,
   SKILLS_FOLDER,
 } from './copy-set.ts'
@@ -57,6 +61,21 @@ const checkSkill = async (dir: string) => {
   ]
 }
 
+// An install brings an agent's set and the sets that one requires, so its preloaded skills must come
+// from those. findSetProblems already reports an agent or skill in no set and an agent in two.
+const findUnshippedSkills = (file: string, skills: readonly string[]) => {
+  const [owner, ...otherOwners] = findOwnerSets(`${AGENTS_FOLDER}/${file}`)
+  if (owner === undefined || otherOwners.length > 0) return []
+  const shippedSkills = new Set(resolveSets([owner]).flatMap((set) => LANGUAGE_SETS[set].skills))
+  return skills.flatMap((skill) => {
+    const skillOwner = SET_NAMES.find((set) => LANGUAGE_SETS[set].skills.includes(skill))
+    if (skillOwner === undefined || shippedSkills.has(skill)) return []
+    return [
+      `${AGENTS_DIR}/${file}: preloads "${skill}" from the ${skillOwner} set, which the ${owner} set doesn't bring`,
+    ]
+  })
+}
+
 const checkAgent = async (file: string, skillNames: ReadonlySet<string>) => {
   const path = `${AGENTS_DIR}/${file}`
   const frontmatter = await readFrontmatter(path)
@@ -69,6 +88,10 @@ const checkAgent = async (file: string, skillNames: ReadonlySet<string>) => {
     ...skills
       .filter((skill: unknown) => !skillNames.has(String(skill)))
       .map((skill: unknown) => `${path}: preloads missing skill "${String(skill)}"`),
+    ...findUnshippedSkills(
+      file,
+      skills.map(String).filter((skill) => skillNames.has(skill))
+    ),
   ]
 }
 
