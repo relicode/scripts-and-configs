@@ -37,7 +37,7 @@ import {
   isSetName,
   LANGUAGE_SETS,
   listCopySetFiles,
-  type McpServer,
+  MCP_JSON_FILE,
   readClaudeCodeFrontmatter,
   readIfExists,
   resolveSets,
@@ -47,12 +47,15 @@ import {
   SKILLS_FOLDER,
 } from './copy-set.ts'
 import { editMcpJson, parseMcpJson, type ServerChanges } from './mcp-json.ts'
-import { hashServer, identifyServer, listServers, SERVER_NAME_PATTERN } from './mcp-servers.ts'
+import { hashServer, identifyServer, loadServers, type McpServer, SERVER_NAME_PATTERN } from './mcp-servers.ts'
 
 type Options = { target: string; sets?: SetName[]; isDryRun: boolean; isForced: boolean }
 
 // mcpServers holds hashes of parsed .mcp.json entries; manifests from before servers shipped lack it.
 type Manifest = { commit: string; sets: string[]; files: Record<string, string>; mcpServers?: Record<string, string> }
+
+// What this skillster commit ships: the copy-set files, and the servers in its .mcp.json by name.
+type Source = { files: readonly string[]; servers: ReadonlyMap<string, McpServer> }
 
 // mode is what the file is created with; the umask still applies.
 type ShippedFile = { hash: string; mode: number; bytes: Uint8Array }
@@ -121,9 +124,6 @@ const PERSONAL_SKILLS_LABEL = `${USER_CLAUDE_LABEL}/${SKILLS_FOLDER}`
 // Claude Code's global config, which holds user- and local-scope MCP servers next to credentials.
 const CLAUDE_CONFIG_FILE = join(homedir(), '.claude.json')
 const CLAUDE_CONFIG_LABEL = '~/.claude.json'
-const SETTINGS_FILE = 'settings.json'
-const LOCAL_SETTINGS_FILE = 'settings.local.json'
-const MCP_JSON_FILE = '.mcp.json'
 // .mcp.json is written here and renamed over the original, so it's never left half-written.
 const MCP_JSON_TEMPORARY_FILE = `${MCP_JSON_FILE}.skillster-tmp`
 const MCP_JSON_FILES = `:(glob)**/${MCP_JSON_FILE}`
@@ -197,6 +197,7 @@ const SET_MARKERS: Partial<Record<SetName, readonly string[]>> = {
 }
 const SCOPE_MARKER_SUFFIX = '/'
 const SET_PROBLEMS_HINT = 'Fix the language sets in skillster first; bun run lint reports the same problems.'
+const UNCOMMITTED_WARNING = `skillster's copy set or ${MCP_JSON_FILE} has uncommitted changes, which the manifest's commit doesn't include`
 const SHORT_COMMIT_LENGTH = 7
 const ACTION_WIDTH = 8
 
@@ -464,9 +465,15 @@ const checkFiles = async (
   )
 }
 
-const loadShippedServers = (sets: readonly SetName[]) =>
+// The chosen sets' servers, with the hashes the manifest records.
+const pickShippedServers = (servers: ReadonlyMap<string, McpServer>, sets: readonly SetName[]) =>
   new Map<string, ShippedServer>(
-    [...listServers(sets)].map(([name, server]) => [name, { hash: hashServer(server), server }])
+    sets.flatMap((set) =>
+      LANGUAGE_SETS[set].mcpServers.flatMap((name) => {
+        const server = servers.get(name)
+        return server === undefined ? [] : [[name, { hash: hashServer(server), server }] as const]
+      })
+    )
   )
 
 const checkServers = (
@@ -661,13 +668,13 @@ const chooseSets = (options: Options, previous: Manifest | undefined) =>
 const buildPlan = async (
   options: Options,
   previous: Manifest | undefined,
-  copySetFiles: readonly string[],
+  source: Source,
   packageJsons: unknown[]
 ): Promise<Plan> => {
   const sets = chooseSets(options, previous)
   const claudeDir = join(options.target, CLAUDE_DIR_NAME)
   const [packageJson, mcpJson] = await Promise.all([readPackageJson(options.target), readMcpJson(options.target)])
-  const files = copySetFiles.filter((file) => findOwnerSets(file).some((owner) => sets.includes(owner)))
+  const files = source.files.filter((file) => findOwnerSets(file).some((owner) => sets.includes(owner)))
   return {
     target: options.target,
     claudeDir,
@@ -678,7 +685,7 @@ const buildPlan = async (
     packageJsons,
     checks: await checkFiles(claudeDir, await loadShippedFiles(files), listInstalled(previous)),
     mcpJson,
-    servers: checkServers(mcpJson, loadShippedServers(sets), listInstalledServers(previous)),
+    servers: checkServers(mcpJson, pickShippedServers(source.servers, sets), listInstalledServers(previous)),
     prettierIgnore: await planPrettierIgnore(options.target, packageJson),
   }
 }
@@ -859,12 +866,11 @@ const findDuplicateServers = (
   shipped: ReadonlyMap<string, ShippedServer>
 ) =>
   Object.entries(servers).flatMap(([name, server]) => {
-    if (shipped.has(name)) return []
-    const identities = identifyServer(server)
-    return [...shipped].flatMap(([ourName, ours]) => {
-      const shared = [...identifyServer(ours.server)].find((identity) => identities.has(identity))
-      return shared === undefined ? [] : [{ name, ourName, shared }]
-    })
+    const shared = identifyServer(server)
+    if (shipped.has(name) || shared === undefined) return []
+    return [...shipped].flatMap(([ourName, ours]) =>
+      identifyServer(ours.server) === shared ? [{ name, ourName, shared }] : []
+    )
   })
 
 // Only a warning depends on these, so a file that can't be read gets a warning instead.
@@ -936,20 +942,14 @@ const describeScopedServers = (
   servers: readonly [string, unknown][],
   shipped: ReadonlyMap<string, ShippedServer>,
   precedence: string
-) => [
-  ...servers.flatMap(([name, server]) => {
+) =>
+  servers.flatMap(([name, server]) => {
     const ours = shipped.get(name)
     if (ours === undefined) return []
     return [
       `${CLAUDE_CONFIG_LABEL} has a ${scope} ${name} server with ${describeDefinition(server, ours)}; ${precedence}`,
     ]
-  }),
-  ...findDuplicateServers(Object.fromEntries(servers), shipped).map(
-    ({ name, ourName, shared }) =>
-      `${CLAUDE_CONFIG_LABEL} has a ${scope} ${name} server with the same ${shared} as skillster's ${ourName}, ` +
-      'so sessions in this project start both'
-  ),
-]
+  })
 
 // ~/.claude.json also holds credentials, so only server names and definitions are read from it, only
 // names reach the output, and an error message, which could quote the file, is never printed.
@@ -970,27 +970,6 @@ const findScopedServerWarnings = async (target: string, shipped: ReadonlyMap<str
   } catch {
     return [`couldn't check ${CLAUDE_CONFIG_LABEL} for MCP servers like skillster's`]
   }
-}
-
-const approvesAllProjectServers = async (path: string) => {
-  const settings = await readJsoncFile(path)
-  return isRecord(settings) && settings.enableAllProjectMcpServers === true
-}
-
-// Approving every project server, which the approval prompt offers, lets new ones start without asking.
-const findAutoApprovalWarnings = async (plan: Plan) => {
-  if (!plan.servers.some((check) => findAction(check) === 'create')) return []
-  const files = [
-    { path: join(plan.claudeDir, SETTINGS_FILE), label: claudePath(SETTINGS_FILE) },
-    { path: join(plan.claudeDir, LOCAL_SETTINGS_FILE), label: claudePath(LOCAL_SETTINGS_FILE) },
-    { path: join(USER_CLAUDE_DIR, SETTINGS_FILE), label: `${USER_CLAUDE_LABEL}/${SETTINGS_FILE}` },
-  ]
-  const approving = await Promise.all(
-    files.map(async (file) => ((await approvesAllProjectServers(file.path)) ? [file] : []))
-  )
-  return approving
-    .flat()
-    .map(({ label }) => `${label} sets enableAllProjectMcpServers, so the new MCP servers start without asking`)
 }
 
 // Claude Code starts a stdio server's command from PATH.
@@ -1020,7 +999,6 @@ const findServerWarnings = async (plan: Plan) => {
     ),
     ...(await findNestedServerWarnings(plan.target, shipped)),
     ...(await findScopedServerWarnings(plan.target, shipped)),
-    ...(await findAutoApprovalWarnings(plan)),
     ...findMissingCommands(shipped),
   ]
 }
@@ -1062,7 +1040,7 @@ const findWarnings = async (plan: Plan) => {
     ...(await findPersonalOverrides(plan.sets)),
     ...(await findServerWarnings(plan)),
     ...(await findPrettierScriptWarnings(plan.target, plan.packageJson)),
-    ...(isDirty ? ["the copy set has uncommitted changes, which the manifest's commit doesn't include"] : []),
+    ...(isDirty ? [UNCOMMITTED_WARNING] : []),
   ]
 }
 
@@ -1122,7 +1100,8 @@ const planInstall = async (options: Options): Promise<Preparation> => {
   const sourceAndTargetProblems = await checkSourceAndTarget(options.target)
   if (sourceAndTargetProblems.length > 0) return refuseWith(sourceAndTargetProblems)
   const copySetFiles = await listCopySetFiles()
-  const setProblems = await findSetProblems(copySetFiles)
+  const { problems: serverProblems, servers } = await loadServers()
+  const setProblems = [...(await findSetProblems(copySetFiles)), ...serverProblems]
   if (setProblems.length > 0) return refuseWith([...setProblems, SET_PROBLEMS_HINT])
   const manifestPath = join(options.target, CLAUDE_DIR_NAME, MANIFEST_FILE)
   const { manifest, problems: readProblems } = await readManifest(manifestPath)
@@ -1130,7 +1109,7 @@ const planInstall = async (options: Options): Promise<Preparation> => {
   if (manifestProblems.length > 0) return refuseWith(manifestProblems)
   const packageJsons = await readPackageJsons(options.target)
   if (options.sets === undefined && manifest === undefined) return refuseWith([describeFirstInstall(packageJsons)])
-  const plan = await buildPlan(options, manifest, copySetFiles, packageJsons)
+  const plan = await buildPlan(options, manifest, { files: copySetFiles, servers }, packageJsons)
   const [problems, warnings, notes] = await Promise.all([
     findProblems(plan, options.isForced),
     findWarnings(plan),

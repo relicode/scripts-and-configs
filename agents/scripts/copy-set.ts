@@ -1,7 +1,8 @@
-// The copy set (.claude/rules, skills and agents) split into language sets, and the MCP servers each
-// set adds to a project's .mcp.json. install.ts installs by set; lint:claude checks that every
-// copy-set file is in exactly one set and that every listed entry exists, so a new rule, skill or
-// agent can't ship by accident or go missing, and mcp-servers.ts checks the server definitions.
+// The copy set (.claude/rules, skills and agents) split into language sets, and the MCP servers from
+// this repo's .mcp.json that each set adds to a project's. install.ts installs by set; lint:claude
+// checks that every copy-set file is in exactly one set and that every listed entry exists, so a new
+// rule, skill or agent can't ship by accident or go missing, and mcp-servers.ts does the same for the
+// servers.
 
 import { lstat } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -9,33 +10,21 @@ import { $ } from 'bun'
 
 export type SetName = (typeof SET_NAMES)[number]
 
-// .mcp.json entries. Claude Code expands ${VAR} and ${VAR:-default} in them when it starts the
-// server, so secrets stay in the environment.
-export type StdioServer = {
-  type: 'stdio'
-  command: string
-  args: readonly string[]
-  env?: Readonly<Record<string, string>>
-}
-
-export type HttpServer = { type: 'http'; url: string; headers?: Readonly<Record<string, string>> }
-
-export type McpServer = StdioServer | HttpServer
-
 type Frontmatter = Record<string, unknown>
 
 // Rules are paths under rules/, skills are folder names under skills/, agents are file names
-// under agents/ without .md, and MCP servers are keyed by the name they get in .mcp.json.
+// under agents/ without .md, and MCP servers are names in this repo's .mcp.json.
 type LanguageSet = {
   rules: readonly string[]
   skills: readonly string[]
   agents: readonly string[]
-  mcpServers: Readonly<Record<string, McpServer>>
+  mcpServers: readonly string[]
   requires: readonly SetName[]
 }
 
 export const SET_NAMES = ['core', 'js', 'web', 'react', 'next', 'mui', 'astro', 'mobile', 'aws'] as const
 export const CLAUDE_DIR_NAME = '.claude'
+export const MCP_JSON_FILE = '.mcp.json'
 export const RULES_FOLDER = 'rules'
 export const SKILLS_FOLDER = 'skills'
 export const AGENTS_FOLDER = 'agents'
@@ -43,6 +32,8 @@ export const COMMANDS_FOLDER = 'commands'
 export const SKILL_FILE = 'SKILL.md'
 export const COPY_SET_FOLDERS = [RULES_FOLDER, SKILLS_FOLDER, AGENTS_FOLDER] as const
 export const COPY_SET_DIR = join(import.meta.dir, '..', CLAUDE_DIR_NAME)
+// The sets' MCP servers, which this repo's own sessions read as well.
+export const SERVERS_FILE = join(import.meta.dir, '..', MCP_JSON_FILE)
 
 const CORE_SET: SetName = 'core'
 const MAX_NAME_LENGTH = 255
@@ -57,20 +48,19 @@ const KEY_VALUE_PATTERN = /^([\w-]+):[ \t]*(.*?)\r?$/
 const LEADING_TABS_PATTERN = /^\t+/
 const TAB_INDENT = '  '
 
-// Package versions are exact: bunx and uvx would otherwise start whatever was published last.
 export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
   core: {
     rules: ['clean-code.md', 'scripts.md'],
     skills: ['review-generic', 'develop-generic'],
     agents: ['reviewer'],
-    mcpServers: { context7: { type: 'http', url: 'https://mcp.context7.com/mcp' } },
+    mcpServers: ['context7'],
     requires: [],
   },
   js: {
     rules: ['js/typescript.md', 'js/lint-and-format.md', 'js/bun.md'],
     skills: ['review-bun', 'best-practices-bun'],
     agents: ['reviewer-b', 'dev-bun'],
-    mcpServers: {},
+    mcpServers: [],
     requires: [],
   },
   // Web apps are written in JS/TS, which the js rules cover.
@@ -78,13 +68,7 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     rules: [],
     skills: [],
     agents: [],
-    mcpServers: {
-      'chrome-devtools': {
-        type: 'stdio',
-        command: 'bunx',
-        args: ['chrome-devtools-mcp@1.10.1', '--headless', '--isolated'],
-      },
-    },
+    mcpServers: ['chrome-devtools'],
     requires: ['js'],
   },
   // React code runs in the browser, so React brings web, and with it the JS/TS set that reviewer-r's
@@ -93,7 +77,7 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     rules: ['js/react.md'],
     skills: ['review-react', 'best-practices-react'],
     agents: ['reviewer-r'],
-    mcpServers: {},
+    mcpServers: [],
     requires: ['web'],
   },
   // dev-next preloads best-practices-react and hands its changes to reviewer-r, so Next.js never ships
@@ -102,7 +86,7 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     rules: [],
     skills: [],
     agents: ['dev-next'],
-    mcpServers: { 'next-devtools': { type: 'stdio', command: 'bunx', args: ['next-devtools-mcp@0.4.0'] } },
+    mcpServers: ['next-devtools'],
     requires: ['react'],
   },
   // MUI is a React component library.
@@ -110,7 +94,7 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     rules: [],
     skills: [],
     agents: [],
-    mcpServers: { 'mui-mcp': { type: 'stdio', command: 'bunx', args: ['@mui/mcp@0.1.7'] } },
+    mcpServers: ['mui-mcp'],
     requires: ['react'],
   },
   // Astro pages run in the browser, so Astro brings web, and with it the JS/TS set: dev-astro preloads
@@ -119,7 +103,7 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     rules: [],
     skills: [],
     agents: ['dev-astro'],
-    mcpServers: { 'astro-docs': { type: 'http', url: 'https://mcp.docs.astro.build/mcp' } },
+    mcpServers: ['astro-docs'],
     requires: ['web'],
   },
   // Expo and React Native apps, whose JS/TS the js rules cover. maestro is the Maestro CLI's own
@@ -128,32 +112,17 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     rules: [],
     skills: [],
     agents: [],
-    mcpServers: { maestro: { type: 'stdio', command: 'maestro', args: ['mcp'] } },
+    mcpServers: ['maestro'],
     requires: ['js'],
   },
-  // AWS's own SigV4 proxy, from the distribution that pins its whole dependency tree. It signs with the
-  // developer's AWS profile, so --read-only keeps the tools that need write access out of reach.
+  // aws-mcp runs AWS's own SigV4 proxy, from the distribution that pins its whole dependency tree. It
+  // signs with the developer's AWS profile, so --read-only keeps the tools that need write access out of
+  // reach.
   aws: {
     rules: [],
     skills: [],
     agents: [],
-    mcpServers: {
-      'aws-mcp': {
-        type: 'stdio',
-        command: 'uvx',
-        // biome-ignore-start lint/suspicious/noTemplateCurlyInString: Claude Code expands these, not JavaScript
-        args: [
-          'mcp-proxy-for-aws-cli==1.7.0',
-          '${AWS_MCP_ENDPOINT:-https://aws-mcp.eu-central-1.api.aws/mcp}',
-          '--profile',
-          '${AWS_PROFILE:-default}',
-          '--metadata',
-          'AWS_REGION=${AWS_REGION:-eu-west-1}',
-          '--read-only',
-        ],
-        // biome-ignore-end lint/suspicious/noTemplateCurlyInString: Claude Code expands these, not JavaScript
-      },
-    },
+    mcpServers: ['aws-mcp'],
     requires: [],
   },
 }
@@ -245,9 +214,9 @@ export const listCopySetFiles = async () => {
   return present.flat().toSorted()
 }
 
-// This module decides what each set ships, so its own uncommitted changes count too.
+// This module and .mcp.json decide what each set ships, so their own uncommitted changes count too.
 export const hasUncommittedChanges = async () => {
-  const paths = [...COPY_SET_FOLDERS.map((folder) => join(COPY_SET_DIR, folder)), import.meta.path]
+  const paths = [...COPY_SET_FOLDERS.map((folder) => join(COPY_SET_DIR, folder)), import.meta.path, SERVERS_FILE]
   const status =
     await $`git -C ${COPY_SET_DIR} --no-optional-locks status --porcelain --untracked-files=all -- ${paths}`
       .quiet()

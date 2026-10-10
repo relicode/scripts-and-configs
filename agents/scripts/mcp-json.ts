@@ -1,5 +1,5 @@
-// Reads and edits a project's .mcp.json for install.ts. An edit touches only the mcpServers entries
-// that change, so other servers, key order, spacing and line endings stay as they are.
+// Reads .mcp.json files, and edits a project's for install.ts. An edit touches only the mcpServers
+// entries that change, so other servers, key order, spacing and line endings stay as they are.
 
 type Member = { key: string; start: number; valueStart: number; valueEnd: number }
 
