@@ -1,7 +1,8 @@
-// Structural checks for the copy set (.claude/rules, skills and agents). Biome skips
-// .claude/, so this is what catches a renamed skill folder, a dangling `skills:` entry,
-// rule frontmatter that no longer parses (Claude Code then loads that rule everywhere)
-// or a file that isn't in exactly one language set.
+// Structural checks for the copy set (.claude/rules, skills and agents) and the sets' MCP
+// servers. Biome skips .claude/, so this is what catches a renamed skill folder, a dangling
+// `skills:` entry, rule frontmatter that no longer parses (Claude Code then loads that rule
+// everywhere), a file that isn't in exactly one language set, or a server definition, in a set or
+// inline in an agent, that is malformed, unpinned or holds a literal secret.
 
 import { readdir, stat } from 'node:fs/promises'
 
@@ -21,6 +22,7 @@ import {
   SKILL_FILE,
   SKILLS_FOLDER,
 } from './copy-set.ts'
+import { findAgentServerProblems, findServerProblems, listServers } from './mcp-servers.ts'
 
 const SKILLS_DIR = `${CLAUDE_DIR_NAME}/${SKILLS_FOLDER}`
 const AGENTS_DIR = `${CLAUDE_DIR_NAME}/${AGENTS_FOLDER}`
@@ -96,6 +98,7 @@ const checkAgent = async (file: string, skillNames: ReadonlySet<string>) => {
       file,
       skills.map(String).filter((skill) => skillNames.has(skill))
     ),
+    ...findAgentServerProblems(frontmatter.mcpServers).map((problem) => `${path}: ${problem}`),
   ]
 }
 
@@ -136,6 +139,7 @@ const problems = [
     ])
   ).flat(),
   ...(await findSetProblems(await listCopySetFiles())),
+  ...findServerProblems(),
 ]
 
 if (problems.length > 0) {
@@ -143,4 +147,7 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
-console.log(`✓ ${skillDirs.length} skills, ${agentFiles.length} agents, ${ruleFiles.length} rules`)
+const serverCount = listServers(SET_NAMES).size
+console.log(
+  `✓ ${skillDirs.length} skills, ${agentFiles.length} agents, ${ruleFiles.length} rules, ${serverCount} MCP servers`
+)

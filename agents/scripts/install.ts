@@ -1,9 +1,24 @@
-// Installs language sets from this repo's copy set into another repository's .claude/:
-//   bun scripts/install.ts <target> [--dry-run] [--sets core,js,react,next,astro] [--force]
+// Installs language sets from this repo's copy set into another repository's .claude/, and merges
+// the sets' MCP servers into its .mcp.json:
+//   bun scripts/install.ts <target> [--dry-run] [--sets core,js,web,react,next,mui,astro,mobile,aws] [--force]
 // Nothing is written until every check passes. The manifest records what was installed, so a
-// re-install can tell its own files from the project's and notice local edits.
+// re-install can tell its own files and servers from the project's and notice local edits.
 
-import { access, appendFile, constants, lstat, mkdir, open, readdir, realpath, rmdir, stat } from 'node:fs/promises'
+import {
+  access,
+  appendFile,
+  chmod,
+  constants,
+  lstat,
+  mkdir,
+  open,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  rmdir,
+  stat,
+} from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join, posix, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -22,6 +37,7 @@ import {
   isSetName,
   LANGUAGE_SETS,
   listCopySetFiles,
+  type McpServer,
   readClaudeCodeFrontmatter,
   readIfExists,
   resolveSets,
@@ -30,18 +46,34 @@ import {
   SKILL_FILE,
   SKILLS_FOLDER,
 } from './copy-set.ts'
+import { editMcpJson, parseMcpJson, type ServerChanges } from './mcp-json.ts'
+import { hashServer, identifyServer, listServers, SERVER_NAME_PATTERN } from './mcp-servers.ts'
 
 type Options = { target: string; sets?: SetName[]; isDryRun: boolean; isForced: boolean }
 
-type Manifest = { commit: string; sets: string[]; files: Record<string, string> }
+// mcpServers holds hashes of parsed .mcp.json entries; manifests from before servers shipped lack it.
+type Manifest = { commit: string; sets: string[]; files: Record<string, string>; mcpServers?: Record<string, string> }
 
 // mode is what the file is created with; the umask still applies.
 type ShippedFile = { hash: string; mode: number; bytes: Uint8Array }
 
-type FileState = { kind: 'missing' } | { kind: 'file'; hash: string } | { kind: 'other' }
+type ShippedServer = { hash: string; server: McpServer }
 
-// A path under .claude/ that the install touches: shipped now, installed before, or both.
-type FileCheck = { file: string; shipped?: ShippedFile; installedHash?: string; state: FileState }
+type EntryState = { kind: 'missing' } | { kind: 'present'; hash: string } | { kind: 'other' }
+
+// A file under .claude/ or a server in .mcp.json that the install touches: shipped now, installed
+// before, or both.
+type Check = { shipped?: { hash: string }; installedHash?: string; state: EntryState }
+
+type FileCheck = Check & { file: string; shipped?: ShippedFile }
+
+type ServerCheck = Check & { name: string; shipped?: ShippedServer }
+
+// The project's .mcp.json, or why the installer can't merge into it.
+type McpJsonState =
+  | { kind: 'missing' }
+  | { kind: 'file'; text: string; hasBom: boolean; servers: Record<string, unknown> }
+  | { kind: 'refused'; problem: string }
 
 type Action = 'create' | 'update' | 'adopt' | 'keep' | 'delete'
 
@@ -50,6 +82,7 @@ type GitResult = { isOk: boolean; output: string; error: string }
 // What to append to .prettierignore, or why it can't be appended to.
 type PrettierIgnorePlan = { append?: string; problem?: string }
 
+// packageJson is the target's own; packageJsons holds every package.json in it, workspaces included.
 type Plan = {
   target: string
   claudeDir: string
@@ -57,13 +90,22 @@ type Plan = {
   commit: string
   previous?: Manifest
   packageJson: unknown
+  packageJsons: unknown[]
   checks: FileCheck[]
+  mcpJson: McpJsonState
+  servers: ServerCheck[]
   prettierIgnore: PrettierIgnorePlan
 }
 
 type Preparation = { plan?: Plan; problems: string[]; warnings: string[]; notes: string[] }
 
-const USAGE = `Usage: bun scripts/install.ts <target> [--dry-run] [--sets ${SET_NAMES.join(',')}] [--force]`
+const USAGE = `Usage: bun scripts/install.ts <target> [--dry-run] [--sets ${SET_NAMES.join(',')}] [--force]
+
+Copies the chosen sets' rules, skills and agents into <target>/.claude/ and merges their MCP servers
+into <target>/.mcp.json. A first install needs --sets; a re-install keeps the sets of the last one
+unless --sets says otherwise.`
+const HELP_FLAGS = new Set(['-h', '--help'])
+const END_OF_OPTIONS = '--'
 const EXIT_OK = 0
 const EXIT_FAILED = 1
 const SOURCE_ROOT = join(import.meta.dir, '..')
@@ -76,10 +118,24 @@ const USER_CLAUDE_DIR = join(homedir(), CLAUDE_DIR_NAME)
 const USER_CLAUDE_LABEL = `~/${CLAUDE_DIR_NAME}`
 const PERSONAL_SKILLS_DIR = join(USER_CLAUDE_DIR, SKILLS_FOLDER)
 const PERSONAL_SKILLS_LABEL = `${USER_CLAUDE_LABEL}/${SKILLS_FOLDER}`
+// Claude Code's global config, which holds user- and local-scope MCP servers next to credentials.
+const CLAUDE_CONFIG_FILE = join(homedir(), '.claude.json')
+const CLAUDE_CONFIG_LABEL = '~/.claude.json'
+const SETTINGS_FILE = 'settings.json'
+const LOCAL_SETTINGS_FILE = 'settings.local.json'
+const MCP_JSON_FILE = '.mcp.json'
+// .mcp.json is written here and renamed over the original, so it's never left half-written.
+const MCP_JSON_TEMPORARY_FILE = `${MCP_JSON_FILE}.skillster-tmp`
+const MCP_JSON_FILES = `:(glob)**/${MCP_JSON_FILE}`
+const NODE_MODULES_EXCLUSION = ':(exclude,glob)**/node_modules/**'
+const UTF8_BOM = [0xef, 0xbb, 0xbf]
+const BOM = '\uFEFF'
+const GIT_FOLDER = '.git'
 const HASH_PATTERN = /^[0-9a-f]{64}$/
 const COPY_SET_PATH_PATTERN = new RegExp(`^(${COPY_SET_FOLDERS.join('|')})/`)
 const FILE_MODE = 0o666
 const EXECUTABLE_FILE_MODE = 0o777
+const PERMISSION_BITS = 0o777
 const EXECUTE_BITS = 0o111
 const NUL = 0x00
 const CARRIAGE_RETURN = 0x0d
@@ -125,9 +181,21 @@ const RUNNER_WORDS = new Set([
 // In the order Biome looks for them.
 const BIOME_CONFIG_FILES = ['biome.json', 'biome.jsonc', '.biome.json', '.biome.jsonc']
 const PACKAGE_FILE = 'package.json'
+const PACKAGE_FILES = `:(glob)**/${PACKAGE_FILE}`
 const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'] as const
-// A dependency that shows the project needs the set, so an install that leaves the set out can say so.
-const SET_MARKER_PACKAGES: Partial<Record<SetName, string>> = { react: 'react-dom', next: 'next', astro: 'astro' }
+// Any package.json shows the project needs js; these dependencies show the other sets it needs, so a
+// first install can suggest them and an install that leaves one out can say so. A marker ending in /
+// stands for every package in that scope.
+const JS_SET: SetName = 'js'
+const SET_MARKERS: Partial<Record<SetName, readonly string[]>> = {
+  react: ['react-dom'],
+  next: ['next'],
+  mui: ['@mui/material'],
+  astro: ['astro'],
+  mobile: ['expo', 'react-native'],
+  aws: ['aws-cdk-lib', '@aws-sdk/'],
+}
+const SCOPE_MARKER_SUFFIX = '/'
 const SET_PROBLEMS_HINT = 'Fix the language sets in skillster first; bun run lint reports the same problems.'
 const SHORT_COMMIT_LENGTH = 7
 const ACTION_WIDTH = 8
@@ -138,10 +206,12 @@ const formatStep = (action: string, path: string) => `  ${action.padEnd(ACTION_W
 
 const describeError = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
-// The manifest may not have made it, so the hint names the sets instead of relying on it.
+// The manifest may not have made it, so the hint names the sets instead of relying on it. .mcp.json is
+// replaced in one step, so its servers either all landed or none did.
 const describeInterruptedHint = (sets: readonly SetName[]) =>
-  `Fix the cause and re-run from the same skillster commit with --sets ${sets.join(',')}: files that landed ` +
-  'whole are recognized by their content. If the re-run refuses a file this run cut off, delete that file first.'
+  `Fix the cause and re-run from the same skillster commit with --sets ${sets.join(',')}: files and MCP ` +
+  'servers that landed whole are recognized by their content. If the re-run refuses a file this run cut off, ' +
+  'delete that file first.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -182,17 +252,26 @@ const parseJsonc = (text: string): unknown => {
   }
 }
 
+// For files that only feed suggestions and warnings: one that can't be read counts as absent.
+const readJsoncFile = async (path: string) => {
+  try {
+    return parseJsonc(await Bun.file(path).text())
+  } catch {
+    return undefined
+  }
+}
+
 // Agent and skill folders may be symlinks, which Claude Code follows, so the scan follows them too.
 const scanFiles = async (dir: string, pattern: string) => {
   if (!(await isDirectory(dir))) return []
   return (await Array.fromAsync(new Bun.Glob(pattern).scan({ cwd: dir, followSymlinks: true }))).toSorted()
 }
 
-const inspectFile = async (path: string): Promise<FileState> => {
+const inspectFile = async (path: string): Promise<EntryState> => {
   const stats = await readIfExists(() => lstat(path))
   if (stats === undefined) return { kind: 'missing' }
   if (!stats.isFile()) return { kind: 'other' }
-  return { kind: 'file', hash: hashContent(await Bun.file(path).bytes()) }
+  return { kind: 'present', hash: hashContent(await Bun.file(path).bytes()) }
 }
 
 const runGit = async (dir: string, args: readonly string[]): Promise<GitResult> => {
@@ -202,6 +281,14 @@ const runGit = async (dir: string, args: readonly string[]): Promise<GitResult> 
     output: result.stdout.toString().replace(TRAILING_NEWLINE_PATTERN, ''),
     error: result.stderr.toString().trim().split('\n')[0] ?? '',
   }
+}
+
+// Files under dir that git would commit, in every folder, such as each workspace's package.json.
+// Dependencies checked into node_modules aren't the project's own.
+const listProjectFiles = async (dir: string, pathspec: string) => {
+  const args = ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', pathspec, NODE_MODULES_EXCLUSION]
+  const result = await runGit(dir, args)
+  return result.isOk ? [...new Set(result.output.split('\0').filter((file) => file !== ''))] : []
 }
 
 const listRootCommits = async (dir: string) => {
@@ -247,9 +334,15 @@ const parseOptions = (args: string[]): Options => {
   }
 }
 
-const readOptions = () => {
+// Checked before parseArgs, which would reject --help as an unknown option.
+const isHelpRequested = (args: readonly string[]) => {
+  const end = args.indexOf(END_OF_OPTIONS)
+  return (end === -1 ? args : args.slice(0, end)).some((arg) => HELP_FLAGS.has(arg))
+}
+
+const readOptions = (args: string[]) => {
   try {
-    return parseOptions(Bun.argv.slice(2))
+    return parseOptions(args)
   } catch (error) {
     console.error(`${describeError(error)}\n${USAGE}`)
     return undefined
@@ -312,13 +405,18 @@ const isCopySetPath = (file: string) =>
 const isHashOfCopySetFile = ([file, hash]: [string, unknown]) =>
   isCopySetPath(file) && typeof hash === 'string' && HASH_PATTERN.test(hash)
 
+const isHashOfServer = ([name, hash]: [string, unknown]) =>
+  SERVER_NAME_PATTERN.test(name) && typeof hash === 'string' && HASH_PATTERN.test(hash)
+
 const isManifest = (value: unknown): value is Manifest =>
   isRecord(value) &&
   typeof value.commit === 'string' &&
   Array.isArray(value.sets) &&
   value.sets.every((set) => typeof set === 'string') &&
   isRecord(value.files) &&
-  Object.entries(value.files).every(isHashOfCopySetFile)
+  Object.entries(value.files).every(isHashOfCopySetFile) &&
+  (value.mcpServers === undefined ||
+    (isRecord(value.mcpServers) && Object.entries(value.mcpServers).every(isHashOfServer)))
 
 // The manifest decides what gets overwritten or deleted, so anything unexpected in it stops the install.
 const readManifest = async (path: string): Promise<{ manifest?: Manifest; problems: string[] }> => {
@@ -335,6 +433,8 @@ const readManifest = async (path: string): Promise<{ manifest?: Manifest; proble
 }
 
 const listInstalled = (manifest: Manifest | undefined) => new Map(Object.entries(manifest?.files ?? {}))
+
+const listInstalledServers = (manifest: Manifest | undefined) => new Map(Object.entries(manifest?.mcpServers ?? {}))
 
 const loadShippedFile = async (file: string) => {
   const path = join(COPY_SET_DIR, file)
@@ -364,13 +464,74 @@ const checkFiles = async (
   )
 }
 
+const loadShippedServers = (sets: readonly SetName[]) =>
+  new Map<string, ShippedServer>(
+    [...listServers(sets)].map(([name, server]) => [name, { hash: hashServer(server), server }])
+  )
+
+const checkServers = (
+  mcpJson: McpJsonState,
+  shipped: ReadonlyMap<string, ShippedServer>,
+  installed: ReadonlyMap<string, string>
+) => {
+  const servers = mcpJson.kind === 'file' ? mcpJson.servers : {}
+  const names = [...new Set([...shipped.keys(), ...installed.keys()])].toSorted()
+  return names.map(
+    (name): ServerCheck => ({
+      name,
+      shipped: shipped.get(name),
+      installedHash: installed.get(name),
+      state: Object.hasOwn(servers, name) ? { kind: 'present', hash: hashServer(servers[name]) } : { kind: 'missing' },
+    })
+  )
+}
+
+const decodeUtf8 = (bytes: Uint8Array) => {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+  } catch {
+    return undefined
+  }
+}
+
+// The decoder drops a byte order mark, so hasBom puts it back when the file is written.
+const readMcpJson = async (target: string): Promise<McpJsonState> => {
+  const path = join(target, MCP_JSON_FILE)
+  const stats = await readIfExists(() => lstat(path))
+  if (stats === undefined) return { kind: 'missing' }
+  if (stats.isSymbolicLink()) {
+    return { kind: 'refused', problem: `${MCP_JSON_FILE} is a symlink; the installer only edits real files` }
+  }
+  if (!stats.isFile()) return { kind: 'refused', problem: `${MCP_JSON_FILE} is in the way: it should be a file` }
+  const bytes = await Bun.file(path).bytes()
+  const text = decodeUtf8(bytes)
+  if (text === undefined) return { kind: 'refused', problem: `${MCP_JSON_FILE} isn't UTF-8 text` }
+  const { servers, problem } = parseMcpJson(text)
+  if (servers === undefined) return { kind: 'refused', problem: `${MCP_JSON_FILE} ${problem}; fix it first` }
+  return { kind: 'file', text, hasBom: UTF8_BOM.every((byte, index) => bytes[index] === byte), servers }
+}
+
 const readPackageJson = async (target: string) => {
   const packageFile = Bun.file(join(target, PACKAGE_FILE))
   return (await packageFile.exists()) ? parseJsonc(await packageFile.text()) : undefined
 }
 
-const dependsOn = (packageJson: unknown, name: string) =>
-  isRecord(packageJson) && DEPENDENCY_FIELDS.some((field) => hasKey(packageJson[field], name))
+// Every package.json in the target, so a monorepo's workspaces count as well as its root.
+const readPackageJsons = async (target: string) => {
+  const files = await listProjectFiles(target, PACKAGE_FILES)
+  const parsed = await Promise.all(files.map((file) => readJsoncFile(join(target, file))))
+  return parsed.filter(isRecord)
+}
+
+const isMarkedBy = (dependency: string, marker: string) =>
+  marker.endsWith(SCOPE_MARKER_SUFFIX) ? dependency.startsWith(marker) : dependency === marker
+
+const dependsOn = (packageJson: unknown, marker: string) =>
+  isRecord(packageJson) &&
+  DEPENDENCY_FIELDS.some((field) => {
+    const dependencies = packageJson[field]
+    return isRecord(dependencies) && Object.keys(dependencies).some((dependency) => isMarkedBy(dependency, marker))
+  })
 
 const listScripts = (packageJson: unknown) => {
   const scripts = isRecord(packageJson) && isRecord(packageJson.scripts) ? Object.entries(packageJson.scripts) : []
@@ -473,18 +634,39 @@ const findManifestSetProblems = (options: Options, manifest: Manifest | undefine
   return [`${claudePath(MANIFEST_FILE)} ${listed}; choose the sets with --sets`]
 }
 
-// Without --sets, a re-install keeps the sets of the last one, and a first install takes them all.
+// The dependency or file that shows the project needs a set, if any package.json has one.
+const findSetMarker = (set: SetName, packageJsons: readonly unknown[]) => {
+  if (set === JS_SET) return packageJsons.length > 0 ? PACKAGE_FILE : undefined
+  return SET_MARKERS[set]?.find((marker) => packageJsons.some((packageJson) => dependsOn(packageJson, marker)))
+}
+
+const suggestSets = (packageJsons: readonly unknown[]) =>
+  resolveSets(SET_NAMES.filter((set) => findSetMarker(set, packageJsons) !== undefined))
+
+// Every set's MCP servers start in each session, so taking them all is no default.
+const describeFirstInstall = (packageJsons: readonly unknown[]) => {
+  const suggested = `--sets ${suggestSets(packageJsons).join(',')}`
+  const suggestion =
+    packageJsons.length > 0
+      ? `the project's ${PACKAGE_FILE} files suggest ${suggested}`
+      : `start from ${suggested} and add the sets the project needs`
+  return `a first install needs --sets, since each set's MCP servers start in every session; ${suggestion}`
+}
+
+// Without --sets, a re-install keeps the sets of the last one. A first install without them was
+// refused before planning.
 const chooseSets = (options: Options, previous: Manifest | undefined) =>
-  resolveSets(options.sets ?? previous?.sets.filter(isSetName) ?? SET_NAMES)
+  resolveSets(options.sets ?? previous?.sets.filter(isSetName) ?? [])
 
 const buildPlan = async (
   options: Options,
   previous: Manifest | undefined,
-  copySetFiles: readonly string[]
+  copySetFiles: readonly string[],
+  packageJsons: unknown[]
 ): Promise<Plan> => {
   const sets = chooseSets(options, previous)
   const claudeDir = join(options.target, CLAUDE_DIR_NAME)
-  const packageJson = await readPackageJson(options.target)
+  const [packageJson, mcpJson] = await Promise.all([readPackageJson(options.target), readMcpJson(options.target)])
   const files = copySetFiles.filter((file) => findOwnerSets(file).some((owner) => sets.includes(owner)))
   return {
     target: options.target,
@@ -493,16 +675,19 @@ const buildPlan = async (
     commit: (await runGit(SOURCE_ROOT, ['rev-parse', 'HEAD'])).output,
     previous,
     packageJson,
+    packageJsons,
     checks: await checkFiles(claudeDir, await loadShippedFiles(files), listInstalled(previous)),
+    mcpJson,
+    servers: checkServers(mcpJson, loadShippedServers(sets), listInstalledServers(previous)),
     prettierIgnore: await planPrettierIgnore(options.target, packageJson),
   }
 }
 
-// A file already identical to the shipped one is adopted: it can't be told apart from one this
-// installer wrote, which is also how a re-run finishes an interrupted install. Modes aren't
+// A file or server already identical to the shipped one is adopted: it can't be told apart from one
+// this installer wrote, which is also how a re-run finishes an interrupted install. File modes aren't
 // compared, since on a filesystem without Unix modes every file would look changed.
-const findAction = ({ state, shipped, installedHash }: FileCheck): Action | undefined => {
-  if (shipped === undefined) return state.kind === 'file' ? 'delete' : undefined
+const findAction = ({ state, shipped, installedHash }: Check): Action | undefined => {
+  if (shipped === undefined) return state.kind === 'present' ? 'delete' : undefined
   if (state.kind === 'missing') return 'create'
   if (state.kind === 'other' || state.hash !== shipped.hash) return 'update'
   return installedHash === undefined ? 'adopt' : 'keep'
@@ -510,19 +695,34 @@ const findAction = ({ state, shipped, installedHash }: FileCheck): Action | unde
 
 const isChange = (action: Action | undefined) => action === 'create' || action === 'update' || action === 'delete'
 
-const isLocallyEdited = ({ state, shipped, installedHash }: FileCheck) =>
-  state.kind === 'file' && installedHash !== undefined && state.hash !== installedHash && state.hash !== shipped?.hash
+const isLocallyEdited = ({ state, shipped, installedHash }: Check) =>
+  state.kind === 'present' &&
+  installedHash !== undefined &&
+  state.hash !== installedHash &&
+  state.hash !== shipped?.hash
 
 const findFileProblem = (check: FileCheck, isForced: boolean) => {
   const { file, shipped, state, installedHash } = check
   if (shipped && state.kind === 'other') return `${claudePath(file)} isn't a regular file; move it out of the way`
-  if (state.kind === 'file' && installedHash === undefined && state.hash !== shipped?.hash) {
+  if (state.kind === 'present' && installedHash === undefined && state.hash !== shipped?.hash) {
     return `${claudePath(file)} has other content and wasn't installed by skillster; remove or rename it`
   }
   if (!isLocallyEdited(check) || isForced) return undefined
   const fix = shipped ? 'overwrite' : 'delete'
   return `${claudePath(file)} has local edits; save them elsewhere and re-run with --force to ${fix} it`
 }
+
+const findServerProblem = (check: ServerCheck, isForced: boolean) => {
+  const { name, shipped, state, installedHash } = check
+  if (state.kind === 'present' && installedHash === undefined && state.hash !== shipped?.hash) {
+    return `${MCP_JSON_FILE} has a different server named ${name}, which skillster didn't install; remove or rename it`
+  }
+  if (!isLocallyEdited(check) || isForced) return undefined
+  const fix = shipped ? 'overwrite' : 'remove'
+  return `the ${name} server in ${MCP_JSON_FILE} has local edits; save them elsewhere and re-run with --force to ${fix} it`
+}
+
+const hasServerChanges = (plan: Plan) => plan.servers.some((check) => isChange(findAction(check)))
 
 const listParentFolders = (file: string) => {
   const parts = file.split('/').slice(0, -1)
@@ -547,12 +747,27 @@ const findUnwritable = async (paths: readonly string[]) => {
   return unique.filter((_, index) => !writable[index]).map((path) => `${path} isn't writable`)
 }
 
-// The manifest and .prettierignore are written last, so a plain permission problem is caught up front.
+// .mcp.json, .prettierignore and the manifest are written last, so a plain permission problem is
+// caught up front. .mcp.json is replaced through a file next to it, which needs the target folder.
 const findWriteProblems = async (plan: Plan) => {
   const manifestFolder = (await isDirectory(plan.claudeDir)) ? plan.claudeDir : plan.target
-  if (plan.prettierIgnore.append === undefined) return findUnwritable([manifestFolder])
   const ignorePath = join(plan.target, PRETTIER_IGNORE_FILE)
-  return findUnwritable([manifestFolder, (await Bun.file(ignorePath).exists()) ? ignorePath : plan.target])
+  const ignoreTarget = (await Bun.file(ignorePath).exists()) ? ignorePath : plan.target
+  const mcpJsonTargets = plan.mcpJson.kind === 'file' ? [join(plan.target, MCP_JSON_FILE), plan.target] : [plan.target]
+  return findUnwritable([
+    manifestFolder,
+    ...(plan.prettierIgnore.append === undefined ? [] : [ignoreTarget]),
+    ...(hasServerChanges(plan) ? mcpJsonTargets : []),
+  ])
+}
+
+// A temporary file that an interrupted run left behind gets replaced, but anything else there is in the way.
+const findTemporaryFileProblems = async (plan: Plan) => {
+  if (!hasServerChanges(plan)) return []
+  const stats = await readIfExists(() => lstat(join(plan.target, MCP_JSON_TEMPORARY_FILE)))
+  return stats && !stats.isFile() && !stats.isSymbolicLink()
+    ? [`${MCP_JSON_TEMPORARY_FILE} is in the way of writing ${MCP_JSON_FILE}; remove it`]
+    : []
 }
 
 const listOurNames = (sets: readonly SetName[], kind: 'skills' | 'agents') =>
@@ -623,11 +838,190 @@ const findProblems = async (plan: Plan, isForced: boolean) => {
   return [
     ...(await findFolderProblems(plan.claudeDir, [...changedFiles, MANIFEST_FILE])),
     ...plan.checks.flatMap((check) => findFileProblem(check, isForced) ?? []),
+    ...(plan.mcpJson.kind === 'refused' ? [plan.mcpJson.problem] : []),
+    ...plan.servers.flatMap((check) => findServerProblem(check, isForced) ?? []),
+    ...(await findTemporaryFileProblems(plan)),
     ...(plan.prettierIgnore.problem === undefined ? [] : [plan.prettierIgnore.problem]),
     ...(await findWriteProblems(plan)),
     ...(await findAgentCollisions(plan, ownFiles)),
     ...(await findSkillCollisions(plan, ownFiles)),
     ...(await findCommandCollisions(plan)),
+  ]
+}
+
+const listShippedServers = (plan: Plan) =>
+  new Map(plan.servers.flatMap(({ name, shipped }) => (shipped ? [[name, shipped] as const] : [])))
+
+// Entries under their own names that run the same package or URL as a shipped server: what they
+// share, for the warning.
+const findDuplicateServers = (
+  servers: Readonly<Record<string, unknown>>,
+  shipped: ReadonlyMap<string, ShippedServer>
+) =>
+  Object.entries(servers).flatMap(([name, server]) => {
+    if (shipped.has(name)) return []
+    const identities = identifyServer(server)
+    return [...shipped].flatMap(([ourName, ours]) => {
+      const shared = [...identifyServer(ours.server)].find((identity) => identities.has(identity))
+      return shared === undefined ? [] : [{ name, ourName, shared }]
+    })
+  })
+
+// Only a warning depends on these, so a file that can't be read gets a warning instead.
+const readServers = async (path: string) => {
+  try {
+    const text = await readIfExists(() => Bun.file(path).text())
+    return (text === undefined ? undefined : parseMcpJson(text).servers) ?? {}
+  } catch {
+    return undefined
+  }
+}
+
+const describeNestedServers = (
+  file: string,
+  servers: Readonly<Record<string, unknown>>,
+  shipped: ReadonlyMap<string, ShippedServer>
+) => {
+  const folder = dirname(file)
+  return [
+    ...Object.entries(servers).flatMap(([name, server]) => {
+      const ours = shipped.get(name)
+      if (ours === undefined || hashServer(server) === ours.hash) return []
+      return [`${file} defines its own ${name}, which wins over skillster's in sessions started in ${folder}`]
+    }),
+    ...findDuplicateServers(servers, shipped).map(
+      ({ name, ourName, shared }) =>
+        `${file}'s ${name} server has the same ${shared} as skillster's ${ourName}, so sessions started in ` +
+        `${folder} start both`
+    ),
+  ]
+}
+
+// A session reads the .mcp.json of every folder from where it starts up to the root, and the nearest
+// file's entry wins for a name, so a package's own .mcp.json can shadow or duplicate skillster's.
+const findNestedServerWarnings = async (target: string, shipped: ReadonlyMap<string, ShippedServer>) => {
+  const files = (await listProjectFiles(target, MCP_JSON_FILES)).filter((file) => file !== MCP_JSON_FILE)
+  const nested = await Promise.all(
+    files.map(async (file) => ({ file, servers: await readServers(join(target, file)) }))
+  )
+  return nested.flatMap(({ file, servers }) =>
+    servers === undefined
+      ? [`couldn't read ${file} to compare its MCP servers with skillster's`]
+      : describeNestedServers(file, servers, shipped)
+  )
+}
+
+// Claude Code keys local-scope servers by the repository's main worktree, which a linked worktree isn't.
+const listProjectKeys = async (target: string) => {
+  const commonDir = await runGit(target, ['rev-parse', '--path-format=absolute', '--git-common-dir'])
+  const mainWorktree = commonDir.isOk && basename(commonDir.output) === GIT_FOLDER ? [dirname(commonDir.output)] : []
+  return [...new Set([await realpath(target), ...mainWorktree])]
+}
+
+const listScopedServers = (config: Record<string, unknown>, projectKeys: readonly string[]) => {
+  const projects = isRecord(config.projects) ? config.projects : {}
+  const local = projectKeys.flatMap((key) => {
+    const project = Object.hasOwn(projects, key) ? projects[key] : undefined
+    return isRecord(project) && isRecord(project.mcpServers) ? Object.entries(project.mcpServers) : []
+  })
+  return { local, user: isRecord(config.mcpServers) ? Object.entries(config.mcpServers) : [] }
+}
+
+const describeDefinition = (server: unknown, ours: ShippedServer) =>
+  hashServer(server) === ours.hash ? 'the same definition' : 'a different definition'
+
+// precedence says which of a same-named pair wins: local scope beats .mcp.json, which beats user scope.
+const describeScopedServers = (
+  scope: string,
+  servers: readonly [string, unknown][],
+  shipped: ReadonlyMap<string, ShippedServer>,
+  precedence: string
+) => [
+  ...servers.flatMap(([name, server]) => {
+    const ours = shipped.get(name)
+    if (ours === undefined) return []
+    return [
+      `${CLAUDE_CONFIG_LABEL} has a ${scope} ${name} server with ${describeDefinition(server, ours)}; ${precedence}`,
+    ]
+  }),
+  ...findDuplicateServers(Object.fromEntries(servers), shipped).map(
+    ({ name, ourName, shared }) =>
+      `${CLAUDE_CONFIG_LABEL} has a ${scope} ${name} server with the same ${shared} as skillster's ${ourName}, ` +
+      'so sessions in this project start both'
+  ),
+]
+
+// ~/.claude.json also holds credentials, so only server names and definitions are read from it, only
+// names reach the output, and an error message, which could quote the file, is never printed.
+const findScopedServerWarnings = async (target: string, shipped: ReadonlyMap<string, ShippedServer>) => {
+  try {
+    const config: unknown = await readIfExists(() => Bun.file(CLAUDE_CONFIG_FILE).json())
+    if (!isRecord(config)) return []
+    const { local, user } = listScopedServers(config, await listProjectKeys(target))
+    return [
+      ...describeScopedServers(
+        'local-scope',
+        local,
+        shipped,
+        `in this project it wins over the one in ${MCP_JSON_FILE}`
+      ),
+      ...describeScopedServers('user-scope', user, shipped, `in this project the one in ${MCP_JSON_FILE} wins over it`),
+    ]
+  } catch {
+    return [`couldn't check ${CLAUDE_CONFIG_LABEL} for MCP servers like skillster's`]
+  }
+}
+
+const approvesAllProjectServers = async (path: string) => {
+  const settings = await readJsoncFile(path)
+  return isRecord(settings) && settings.enableAllProjectMcpServers === true
+}
+
+// Approving every project server, which the approval prompt offers, lets new ones start without asking.
+const findAutoApprovalWarnings = async (plan: Plan) => {
+  if (!plan.servers.some((check) => findAction(check) === 'create')) return []
+  const files = [
+    { path: join(plan.claudeDir, SETTINGS_FILE), label: claudePath(SETTINGS_FILE) },
+    { path: join(plan.claudeDir, LOCAL_SETTINGS_FILE), label: claudePath(LOCAL_SETTINGS_FILE) },
+    { path: join(USER_CLAUDE_DIR, SETTINGS_FILE), label: `${USER_CLAUDE_LABEL}/${SETTINGS_FILE}` },
+  ]
+  const approving = await Promise.all(
+    files.map(async (file) => ((await approvesAllProjectServers(file.path)) ? [file] : []))
+  )
+  return approving
+    .flat()
+    .map(({ label }) => `${label} sets enableAllProjectMcpServers, so the new MCP servers start without asking`)
+}
+
+// Claude Code starts a stdio server's command from PATH.
+const findMissingCommands = (shipped: ReadonlyMap<string, ShippedServer>) => {
+  const commands = [...shipped].flatMap(([name, { server }]) =>
+    server.type === 'stdio' && Bun.which(server.command) === null ? [{ name, command: server.command }] : []
+  )
+  return [...Map.groupBy(commands, ({ command }) => command)].map(
+    ([command, servers]) =>
+      `${command} isn't on PATH, so ${servers.map(({ name }) => name).join(' and ')} won't start until it's installed`
+  )
+}
+
+// Our own entries in .mcp.json, those this install removes included, aren't duplicates of the rest.
+const listForeignServers = (plan: Plan) => {
+  const ownNames = new Set(plan.servers.map(({ name }) => name))
+  const servers = plan.mcpJson.kind === 'file' ? Object.entries(plan.mcpJson.servers) : []
+  return Object.fromEntries(servers.filter(([name]) => !ownNames.has(name)))
+}
+
+const findServerWarnings = async (plan: Plan) => {
+  const shipped = listShippedServers(plan)
+  return [
+    ...findDuplicateServers(listForeignServers(plan), shipped).map(
+      ({ name, ourName, shared }) =>
+        `${MCP_JSON_FILE}'s ${name} server has the same ${shared} as skillster's ${ourName}, so sessions start both`
+    ),
+    ...(await findNestedServerWarnings(plan.target, shipped)),
+    ...(await findScopedServerWarnings(plan.target, shipped)),
+    ...(await findAutoApprovalWarnings(plan)),
+    ...findMissingCommands(shipped),
   ]
 }
 
@@ -666,6 +1060,7 @@ const findWarnings = async (plan: Plan) => {
   const isDirty = await hasUncommittedChanges()
   return [
     ...(await findPersonalOverrides(plan.sets)),
+    ...(await findServerWarnings(plan)),
     ...(await findPrettierScriptWarnings(plan.target, plan.packageJson)),
     ...(isDirty ? ["the copy set has uncommitted changes, which the manifest's commit doesn't include"] : []),
   ]
@@ -699,10 +1094,10 @@ const findBiomeHint = async (target: string) => {
   return [`Biome: add ${entry} to files.includes in ${config}, after "**"; the installer doesn't edit Biome configs.`]
 }
 
-const findLeftOutSets = ({ sets, packageJson }: Plan) =>
+const findLeftOutSets = ({ sets, packageJsons }: Plan) =>
   SET_NAMES.flatMap((set) => {
-    const marker = SET_MARKER_PACKAGES[set]
-    return marker !== undefined && !sets.includes(set) && dependsOn(packageJson, marker) ? [{ set, marker }] : []
+    const marker = sets.includes(set) ? undefined : findSetMarker(set, packageJsons)
+    return marker === undefined ? [] : [{ set, marker }]
   })
 
 const findLeftOutSetsHint = (plan: Plan) => {
@@ -711,7 +1106,8 @@ const findLeftOutSetsHint = (plan: Plan) => {
   const listed = leftOut.map(({ set, marker }) => `${set} (${marker})`).join(', ')
   const suggested = SET_NAMES.filter((set) => plan.sets.includes(set) || leftOut.some((entry) => entry.set === set))
   return [
-    `${PACKAGE_FILE} suggests sets this install leaves out: ${listed}. Add them with --sets ${suggested.join(',')}.`,
+    `The project's ${PACKAGE_FILE} files suggest sets this install leaves out: ${listed}. Add them with ` +
+      `--sets ${suggested.join(',')}.`,
   ]
 }
 
@@ -732,7 +1128,9 @@ const planInstall = async (options: Options): Promise<Preparation> => {
   const { manifest, problems: readProblems } = await readManifest(manifestPath)
   const manifestProblems = [...readProblems, ...findManifestSetProblems(options, manifest)]
   if (manifestProblems.length > 0) return refuseWith(manifestProblems)
-  const plan = await buildPlan(options, manifest, copySetFiles)
+  const packageJsons = await readPackageJsons(options.target)
+  if (options.sets === undefined && manifest === undefined) return refuseWith([describeFirstInstall(packageJsons)])
+  const plan = await buildPlan(options, manifest, copySetFiles, packageJsons)
   const [problems, warnings, notes] = await Promise.all([
     findProblems(plan, options.isForced),
     findWarnings(plan),
@@ -750,29 +1148,42 @@ const prepareInstall = async (options: Options) => {
   }
 }
 
-const describeNote = (check: FileCheck, action: Action) => {
+const describeNote = (check: Check, action: Action) => {
   if (isLocallyEdited(check)) return ' (local edits, --force)'
   return action === 'adopt' ? ' (already identical)' : ''
 }
 
-const describeCheck = (check: FileCheck, isForced: boolean) => {
+// A step to print, or nothing when the check needs no change or is refused.
+const describeCheck = (check: Check, label: string, problem: string | undefined) => {
   const action = findAction(check)
-  if (action === undefined || action === 'keep' || findFileProblem(check, isForced) !== undefined) return []
-  return [`${formatStep(action, claudePath(check.file))}${describeNote(check, action)}`]
+  if (action === undefined || action === 'keep' || problem !== undefined) return []
+  return [`${formatStep(action, label)}${describeNote(check, action)}`]
 }
 
+const countKept = (checks: readonly Check[]) => checks.filter((check) => findAction(check) === 'keep').length
+
 const printPlan = (plan: Plan, options: Options) => {
-  const keptCount = plan.checks.filter((check) => findAction(check) === 'keep').length
+  const { isForced } = options
   const source = `skillster ${plan.commit.slice(0, SHORT_COMMIT_LENGTH)}`
   console.log(
     `Installing ${plan.sets.join(', ')} from ${source} into ${plan.target}${options.isDryRun ? ' (dry run)' : ''}`
   )
-  for (const line of plan.checks.flatMap((check) => describeCheck(check, options.isForced))) console.log(line)
+  // A refused .mcp.json gets no server steps, since none of them can happen.
+  const servers = plan.mcpJson.kind === 'refused' ? [] : plan.servers
+  const steps = [
+    ...plan.checks.flatMap((check) => describeCheck(check, claudePath(check.file), findFileProblem(check, isForced))),
+    ...servers.flatMap((check) =>
+      describeCheck(check, `${MCP_JSON_FILE} server ${check.name}`, findServerProblem(check, isForced))
+    ),
+  ]
+  for (const step of steps) console.log(step)
   if (plan.prettierIgnore.append !== undefined) {
     console.log(formatStep('add', `${CLAUDE_DIR_NAME}/ to ${PRETTIER_IGNORE_FILE}`))
   }
   console.log(formatStep('write', claudePath(MANIFEST_FILE)))
-  if (keptCount > 0) console.log(`  ${keptCount} files already up to date`)
+  const [keptFiles, keptServers] = [countKept(plan.checks), countKept(plan.servers)]
+  if (keptFiles > 0) console.log(`  ${keptFiles} files already up to date`)
+  if (keptServers > 0) console.log(`  ${keptServers} MCP servers already up to date`)
 }
 
 const printMessages = ({ notes, warnings }: Preparation) => {
@@ -810,11 +1221,44 @@ const applyCheck = async (claudeDir: string, check: FileCheck) => {
   }
 }
 
+const listServerChanges = (checks: readonly ServerCheck[]): ServerChanges =>
+  new Map(
+    checks.flatMap((check): [string, McpServer | undefined][] => {
+      const action = findAction(check)
+      if (action === 'delete') return [[check.name, undefined]]
+      const isWritten = action === 'create' || action === 'update'
+      return check.shipped && isWritten ? [[check.name, check.shipped.server]] : []
+    })
+  )
+
+// Written next to .mcp.json and renamed over it, so the project's file is never half-written. The copy
+// starts with the original's mode, so a private file is never readable by others, and the chmod
+// restores bits the umask took; a new file gets the umask's default.
+const writeMcpJson = async (plan: Plan) => {
+  const changes = listServerChanges(plan.servers)
+  if (changes.size === 0) return
+  const current = plan.mcpJson.kind === 'file' ? plan.mcpJson : undefined
+  const path = join(plan.target, MCP_JSON_FILE)
+  const temporaryPath = join(plan.target, MCP_JSON_TEMPORARY_FILE)
+  const mode = current === undefined ? FILE_MODE : (await stat(path)).mode & PERMISSION_BITS
+  try {
+    await writeFresh(temporaryPath, `${current?.hasBom ? BOM : ''}${editMcpJson(current?.text, changes)}`, mode)
+    if (current !== undefined) await chmod(temporaryPath, mode)
+    await rename(temporaryPath, path)
+  } catch (error) {
+    // A leftover copy could end up committed. The cleanup is best effort, so the original error is
+    // what gets reported.
+    await rm(temporaryPath, { force: true }).catch(() => undefined)
+    throw error
+  }
+}
+
 const formatManifest = (plan: Plan) => {
   const files = Object.fromEntries(
     plan.checks.flatMap(({ file, shipped }) => (shipped ? [[file, shipped.hash] as const] : []))
   )
-  const manifest: Manifest = { commit: plan.commit, sets: plan.sets, files }
+  const mcpServers = Object.fromEntries([...listShippedServers(plan)].map(([name, { hash }]) => [name, hash]))
+  const manifest: Manifest = { commit: plan.commit, sets: plan.sets, files, mcpServers }
   return `${JSON.stringify(manifest, undefined, 2)}\n`
 }
 
@@ -822,6 +1266,7 @@ const applyPlan = async (plan: Plan) => {
   try {
     // One at a time, in path order, so an interrupted run leaves a predictable state behind.
     for (const check of plan.checks) await applyCheck(plan.claudeDir, check)
+    await writeMcpJson(plan)
     // Appended in place: it's the project's file, so its own bytes, mode and links stay as they are.
     if (plan.prettierIgnore.append !== undefined) {
       await appendFile(join(plan.target, PRETTIER_IGNORE_FILE), plan.prettierIgnore.append)
@@ -833,11 +1278,23 @@ const applyPlan = async (plan: Plan) => {
     return EXIT_FAILED
   }
   console.log('Installed.')
+  // Approvals go by name, so only a server new to .mcp.json brings a prompt.
+  if (plan.servers.some((check) => findAction(check) === 'create')) {
+    console.log(
+      'Claude Code asks each user to approve the new MCP servers at their next session here, unless their ' +
+        'settings approve all project servers.'
+    )
+  }
   return EXIT_OK
 }
 
 const main = async () => {
-  const options = readOptions()
+  const args = Bun.argv.slice(2)
+  if (isHelpRequested(args)) {
+    console.log(USAGE)
+    return EXIT_OK
+  }
+  const options = readOptions(args)
   if (options === undefined) return EXIT_FAILED
   const preparation = await prepareInstall(options)
   if (preparation.plan) printPlan(preparation.plan, options)

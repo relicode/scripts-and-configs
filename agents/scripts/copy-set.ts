@@ -1,6 +1,7 @@
-// The copy set (.claude/rules, skills and agents) split into language sets. install.ts installs
-// by set; lint:claude checks that every copy-set file is in exactly one set and that every
-// listed entry exists, so a new rule, skill or agent can't ship by accident or go missing.
+// The copy set (.claude/rules, skills and agents) split into language sets, and the MCP servers each
+// set adds to a project's .mcp.json. install.ts installs by set; lint:claude checks that every
+// copy-set file is in exactly one set and that every listed entry exists, so a new rule, skill or
+// agent can't ship by accident or go missing, and mcp-servers.ts checks the server definitions.
 
 import { lstat } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -8,18 +9,32 @@ import { $ } from 'bun'
 
 export type SetName = (typeof SET_NAMES)[number]
 
+// .mcp.json entries. Claude Code expands ${VAR} and ${VAR:-default} in them when it starts the
+// server, so secrets stay in the environment.
+export type StdioServer = {
+  type: 'stdio'
+  command: string
+  args: readonly string[]
+  env?: Readonly<Record<string, string>>
+}
+
+export type HttpServer = { type: 'http'; url: string; headers?: Readonly<Record<string, string>> }
+
+export type McpServer = StdioServer | HttpServer
+
 type Frontmatter = Record<string, unknown>
 
 // Rules are paths under rules/, skills are folder names under skills/, agents are file names
-// under agents/ without .md.
+// under agents/ without .md, and MCP servers are keyed by the name they get in .mcp.json.
 type LanguageSet = {
   rules: readonly string[]
   skills: readonly string[]
   agents: readonly string[]
+  mcpServers: Readonly<Record<string, McpServer>>
   requires: readonly SetName[]
 }
 
-export const SET_NAMES = ['core', 'js', 'react', 'next', 'astro'] as const
+export const SET_NAMES = ['core', 'js', 'web', 'react', 'next', 'mui', 'astro', 'mobile', 'aws'] as const
 export const CLAUDE_DIR_NAME = '.claude'
 export const RULES_FOLDER = 'rules'
 export const SKILLS_FOLDER = 'skills'
@@ -42,32 +57,105 @@ const KEY_VALUE_PATTERN = /^([\w-]+):[ \t]*(.*?)\r?$/
 const LEADING_TABS_PATTERN = /^\t+/
 const TAB_INDENT = '  '
 
+// Package versions are exact: bunx and uvx would otherwise start whatever was published last.
 export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
   core: {
     rules: ['clean-code.md', 'scripts.md'],
     skills: ['review-generic', 'develop-generic'],
     agents: ['reviewer'],
+    mcpServers: { context7: { type: 'http', url: 'https://mcp.context7.com/mcp' } },
     requires: [],
   },
   js: {
     rules: ['js/typescript.md', 'js/lint-and-format.md', 'js/bun.md'],
     skills: ['review-bun', 'best-practices-bun'],
     agents: ['reviewer-b', 'dev-bun'],
+    mcpServers: {},
     requires: [],
   },
-  // reviewer-r preloads review-bun and best-practices-bun, so React never ships without JS/TS.
+  // Web apps are written in JS/TS, which the js rules cover.
+  web: {
+    rules: [],
+    skills: [],
+    agents: [],
+    mcpServers: {
+      'chrome-devtools': {
+        type: 'stdio',
+        command: 'bunx',
+        args: ['chrome-devtools-mcp@1.10.1', '--headless', '--isolated'],
+      },
+    },
+    requires: ['js'],
+  },
+  // React code runs in the browser, so React brings web, and with it the JS/TS set that reviewer-r's
+  // preloaded review-bun and best-practices-bun come from.
   react: {
     rules: ['js/react.md'],
     skills: ['review-react', 'best-practices-react'],
     agents: ['reviewer-r'],
-    requires: ['js'],
+    mcpServers: {},
+    requires: ['web'],
   },
   // dev-next preloads best-practices-react and hands its changes to reviewer-r, so Next.js never ships
   // without React.
-  next: { rules: [], skills: [], agents: ['dev-next'], requires: ['react'] },
-  // dev-astro preloads best-practices-bun, and the js rules cover .astro files, so Astro never ships
-  // without JS/TS.
-  astro: { rules: [], skills: [], agents: ['dev-astro'], requires: ['js'] },
+  next: {
+    rules: [],
+    skills: [],
+    agents: ['dev-next'],
+    mcpServers: { 'next-devtools': { type: 'stdio', command: 'bunx', args: ['next-devtools-mcp@0.4.0'] } },
+    requires: ['react'],
+  },
+  // MUI is a React component library.
+  mui: {
+    rules: [],
+    skills: [],
+    agents: [],
+    mcpServers: { 'mui-mcp': { type: 'stdio', command: 'bunx', args: ['@mui/mcp@0.1.7'] } },
+    requires: ['react'],
+  },
+  // Astro pages run in the browser, so Astro brings web, and with it the JS/TS set: dev-astro preloads
+  // best-practices-bun, and the js rules cover .astro files.
+  astro: {
+    rules: [],
+    skills: [],
+    agents: ['dev-astro'],
+    mcpServers: { 'astro-docs': { type: 'http', url: 'https://mcp.docs.astro.build/mcp' } },
+    requires: ['web'],
+  },
+  // Expo and React Native apps, whose JS/TS the js rules cover. maestro is the Maestro CLI's own
+  // server, so its version is whatever the developer installed.
+  mobile: {
+    rules: [],
+    skills: [],
+    agents: [],
+    mcpServers: { maestro: { type: 'stdio', command: 'maestro', args: ['mcp'] } },
+    requires: ['js'],
+  },
+  // AWS's own SigV4 proxy, from the distribution that pins its whole dependency tree. It signs with the
+  // developer's AWS profile, so --read-only keeps the tools that need write access out of reach.
+  aws: {
+    rules: [],
+    skills: [],
+    agents: [],
+    mcpServers: {
+      'aws-mcp': {
+        type: 'stdio',
+        command: 'uvx',
+        // biome-ignore-start lint/suspicious/noTemplateCurlyInString: Claude Code expands these, not JavaScript
+        args: [
+          'mcp-proxy-for-aws-cli==1.7.0',
+          '${AWS_MCP_ENDPOINT:-https://aws-mcp.eu-central-1.api.aws/mcp}',
+          '--profile',
+          '${AWS_PROFILE:-default}',
+          '--metadata',
+          'AWS_REGION=${AWS_REGION:-eu-west-1}',
+          '--read-only',
+        ],
+        // biome-ignore-end lint/suspicious/noTemplateCurlyInString: Claude Code expands these, not JavaScript
+      },
+    },
+    requires: [],
+  },
 }
 
 export const isMissingPathError = (error: unknown) =>

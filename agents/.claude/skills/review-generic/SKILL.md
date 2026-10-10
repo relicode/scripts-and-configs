@@ -27,6 +27,8 @@ Check the change for:
 5. **Bad practices**: loose types where real ones are feasible; swallowed errors or missing error handling; unawaited async work and race conditions; resource leaks (files, streams, subscriptions, child processes); magic numbers and strings; mutable or global state where immutability is expected.
 6. **Security**: injection (shell, SQL, path traversal through user-supplied paths); secrets in source, config or logs; missing validation at trust boundaries; `eval` and dynamically built code; error messages that leak paths, stack traces or environment.
 
+When the project has docs MCP servers, such as context7, astro-docs, next-devtools or mui-mcp, check library and framework API usage against them rather than from memory.
+
 Record each finding as:
 
 - **Severity**: 🔴 Critical | 🟠 Major | 🟡 Minor
