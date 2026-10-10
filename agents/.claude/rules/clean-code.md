@@ -1,0 +1,43 @@
+# Clean code
+
+How to write and change code in this project. Reviewers check changes against it.
+
+## Principles
+
+- Give each function, module and component one responsibility.
+- Build the simplest thing that works. Don't add features, options or abstractions for needs that don't exist yet.
+- Extract duplicated logic once a second copy appears; one-liners stay inline.
+- When requirements are unclear, ask instead of guessing.
+- Leave the lines you change cleaner than you found them. Don't rewrite code the task doesn't touch.
+
+## Naming
+
+- Names reveal intent: `userCount`, not `n`. If a name needs a comment, rename it.
+- Functions are verb + noun (`getUserById`). Booleans read as questions (`isActive`, `hasPermission`, `canEdit`).
+- No magic numbers or strings: give meaningful literals a named constant, cased the way the language does it.
+
+## Functions and structure
+
+- Keep functions small and at one level of abstraction: aim for 5–20 lines and at most 3 parameters.
+- Don't mutate inputs or hide side effects.
+- Prefer guard clauses and early returns to nesting; stay within 2 levels.
+- Prefer immutable data. No global or top-level mutable state; framework singletons such as an app, router or logger are fine.
+- Write asynchronous code in the language's direct style (`async`/`await`, coroutines), not callback chains.
+- Keep related code together: no factories for two objects, and no utils file for a single function.
+
+## Comments
+
+- Comment _why_, never _what_. Delete comments that restate the code.
+
+## Before editing a file
+
+- Check what imports it, what it imports, and which tests cover it.
+- Update every dependent in the same change. Never leave broken imports or call sites behind.
+
+## Before saying you're done
+
+- The change does what was asked, and only that.
+- Every affected file is updated.
+- Tests pass, and so do the project's format and lint checks.
+- Run new code yourself only when that's safe: nothing that deletes, deploys, migrates or contacts real services. Use a dry run if there is one, and say what you didn't run.
+- Edge cases are handled, or called out explicitly.
