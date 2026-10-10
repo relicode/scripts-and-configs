@@ -62,18 +62,22 @@ const checkSkill = async (dir: string) => {
 }
 
 // An install brings an agent's set and the sets that one requires, so its preloaded skills must come
-// from those. findSetProblems already reports an agent or skill in no set and an agent in two.
+// from those. A skill in no set never ships, and findSetProblems misses one that git ignores. An agent
+// in no set or in two either never ships or already fails findSetProblems.
 const findUnshippedSkills = (file: string, skills: readonly string[]) => {
   const [owner, ...otherOwners] = findOwnerSets(`${AGENTS_FOLDER}/${file}`)
   if (owner === undefined || otherOwners.length > 0) return []
   const shippedSkills = new Set(resolveSets([owner]).flatMap((set) => LANGUAGE_SETS[set].skills))
-  return skills.flatMap((skill) => {
-    const skillOwner = SET_NAMES.find((set) => LANGUAGE_SETS[set].skills.includes(skill))
-    if (skillOwner === undefined || shippedSkills.has(skill)) return []
-    return [
-      `${AGENTS_DIR}/${file}: preloads "${skill}" from the ${skillOwner} set, which the ${owner} set doesn't bring`,
-    ]
-  })
+  return skills
+    .filter((skill) => !shippedSkills.has(skill))
+    .map((skill) => {
+      const skillOwner = SET_NAMES.find((set) => LANGUAGE_SETS[set].skills.includes(skill))
+      const reason =
+        skillOwner === undefined
+          ? ', which no language set ships'
+          : ` from the ${skillOwner} set, which the ${owner} set doesn't bring`
+      return `${AGENTS_DIR}/${file}: preloads "${skill}"${reason}`
+    })
 }
 
 const checkAgent = async (file: string, skillNames: ReadonlySet<string>) => {

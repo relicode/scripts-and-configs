@@ -91,6 +91,9 @@ const listEntries = ({ rules, skills, agents }: LanguageSet) => [
 
 const isInEntry = (file: string, entry: string) => (entry.endsWith('/') ? file.startsWith(entry) : file === entry)
 
+// The file an entry can't ship without: a skill folder without its SKILL.md isn't a skill.
+const findRequiredFile = (entry: string) => (entry.endsWith('/') ? `${entry}${SKILL_FILE}` : entry)
+
 const addRequiredSets = (names: readonly SetName[]): readonly SetName[] => {
   const missing = names.flatMap((name) => LANGUAGE_SETS[name].requires).filter((name) => !names.includes(name))
   return missing.length === 0 ? names : addRequiredSets([...names, ...missing])
@@ -120,8 +123,9 @@ const findOwnershipProblems = (file: string) => {
 const findMissingEntries = (files: readonly string[]) =>
   SET_NAMES.flatMap((name) =>
     listEntries(LANGUAGE_SETS[name])
-      .filter((entry) => !files.some((file) => isInEntry(file, entry)))
-      .map((entry) => `${CLAUDE_DIR_NAME}/${entry}: listed in the ${name} set but missing`)
+      .map(findRequiredFile)
+      .filter((file) => !files.includes(file))
+      .map((file) => `${CLAUDE_DIR_NAME}/${file}: listed in the ${name} set but missing`)
   )
 
 // A symlink would ship whatever it points to, and a submodule nothing at all.
