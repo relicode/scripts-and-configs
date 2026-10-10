@@ -7,7 +7,7 @@ paths:
 
 # Bun
 
-Bun is the toolchain for all TypeScript and JavaScript: it installs packages, runs scripts and runs tests, unless a project's lockfile shows another package manager. Its runtime APIs are narrower: they only exist in code Bun executes, meaning files run with `bun <file>` or a Bun shebang such as `#!/usr/bin/env -S bun`, `Bun.serve` servers and `bun test` suites. Frameworks such as Next.js still run on Node, and browser or React Native code never runs on Bun. When unsure, keep code runtime-neutral and don't use `Bun.*`.
+Bun is the toolchain for all TypeScript and JavaScript: it installs packages, runs scripts and runs tests, unless a project's lockfile shows another package manager. Its runtime APIs are narrower: they only exist in code Bun executes, meaning files run with `bun <file>` or a Bun shebang such as `#!/usr/bin/env bun`, `Bun.serve` servers and `bun test` suites. Frameworks such as Next.js still run on Node, and browser or React Native code never runs on Bun. When unsure, keep code runtime-neutral and don't use `Bun.*`.
 
 ## Tooling
 
@@ -18,10 +18,10 @@ Bun is the toolchain for all TypeScript and JavaScript: it installs packages, ru
 
 ## Executable scripts
 
-Executable TypeScript and JavaScript scripts follow `.claude/rules/scripts.md`, with the shebang `#!/usr/bin/env -S bun`:
+Executable TypeScript and JavaScript scripts follow `.claude/rules/scripts.md`. Where Bun is the toolchain, they start with `#!/usr/bin/env bun`:
 
 ```ts
-#!/usr/bin/env -S bun
+#!/usr/bin/env bun
 
 import { parseArgs } from 'node:util'
 
@@ -40,6 +40,8 @@ if (values.help) {
   process.exit(0)
 }
 ```
+
+A wrapper hands `parseArgs` only the arguments before the command it runs. Where Node runs the script instead, it starts with `#!/usr/bin/env node`, reads `process.argv` and is written in JavaScript, unless the project already runs TypeScript scripts another way, such as `tsx`: Node's own TypeScript support needs erasable syntax and `.ts` import paths, which `tsc` refuses by default.
 
 ## APIs
 
@@ -68,3 +70,13 @@ In new code that Bun executes, prefer Bun's built-ins to Node APIs and npm packa
 - Frontend code type-checked with the rest needs `"DOM"` in `lib`, or a tsconfig of its own.
 - Don't replace a dependency the project already relies on unless asked; mention the Bun alternative instead.
 - Look up API details with `bun <command> --help` or at https://bun.com/docs.
+
+## Processes
+
+`Bun.spawn({ cmd: [...] })`, and Node's `spawn` and `execFile` in code Node runs, start no shell, and `` $`…` `` escapes what it interpolates. That stops shell metacharacters and nothing else:
+
+- Never pass untrusted values through `` ${{ raw: value }} ``, which skips escaping.
+- Interpolate untrusted values only as strings or arrays of strings, typed as such: an object from parsed JSON or a request body, even inside an array, can carry its own `raw` key and inject a command.
+- Validate untrusted values that can start with `-`, or end the options before them the way the command expects (`--`, or git's `--end-of-options` before revisions): they otherwise become options such as `--output=…`.
+- Never take the command itself, `cwd` or `env` from untrusted input, and never build command strings by hand for `sh -c`, `bash -c`, Node's `exec` or `shell: true`.
+- With `Bun.spawn`, await `exited`, drain or pipe stdout and stderr, and check the exit code. `$` throws on a non-zero exit unless you add `.nothrow()`, and then you check `exitCode`.

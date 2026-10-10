@@ -13,7 +13,7 @@ A review is a quality pass on code that was just written or changed: find the pr
 - Findings are about code the change added or modified. Problems that were already there go under Decisions to confirm instead of being fixed, and nothing exported gets renamed or changes its signature.
 - Decisions stated in your instructions, such as "keep `null` here", are constraints: they outrank the house rules.
 - Skip files whose real path is outside the repository (compare `realpath` with `git rev-parse --show-toplevel`): symlinked code belongs to another project.
-- Before Phase 1, read `CLAUDE.md` and every rule in the repository root's `.claude/rules/`, subfolders included, that applies to the files in scope (no `paths:`, or `paths:` that match them), unless it's already in your context. Violations in the change are findings.
+- Before Phase 1, read `CLAUDE.md` and every rule in the repository root's `.claude/rules/`, subfolders included, that applies to the files in scope (no `paths:`, or `paths:` that match them), from disk even when a copy is already in your context, since that copy can be out of date. Violations in the change are findings.
 - Code that follows its file's established style is no violation, even where the house rules say otherwise: see "Existing style wins" in `.claude/rules/clean-code.md`.
 
 ## Phase 1: Review

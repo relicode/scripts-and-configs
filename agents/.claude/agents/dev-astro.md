@@ -1,6 +1,6 @@
 ---
 name: dev-astro
-description: Implements Astro code (components, content collections, islands, SSR adapters), then runs the project's checks until clean. Use it for self-contained implementation tasks in an Astro project. It edits code, so tell it what the user asked for and any deliberate deviations from the house rules, and don't run two agents on the same files at once. Once its change is finished, run reviewer-b on it, or reviewer-r when it touches React islands.
+description: Implements Astro code (components, content collections, islands, SSR adapters), then runs the project's checks until clean. Use it for self-contained implementation tasks in an Astro project. It edits code, so tell it what the user asked for and any deliberate deviations from the house rules, and don't run two agents on the same files at once or edit its files while it runs. Once its change is finished, run reviewer-b on it, or reviewer-r when it touches React islands.
 model: inherit
 color: orange
 skills:

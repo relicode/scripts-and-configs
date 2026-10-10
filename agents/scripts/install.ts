@@ -31,7 +31,7 @@ import {
   SKILLS_FOLDER,
 } from './copy-set.ts'
 
-type Options = { target: string; sets: SetName[]; isDryRun: boolean; isForced: boolean }
+type Options = { target: string; sets?: SetName[]; isDryRun: boolean; isForced: boolean }
 
 type Manifest = { commit: string; sets: string[]; files: Record<string, string> }
 
@@ -56,6 +56,7 @@ type Plan = {
   sets: SetName[]
   commit: string
   previous?: Manifest
+  packageJson: unknown
   checks: FileCheck[]
   prettierIgnore: PrettierIgnorePlan
 }
@@ -96,13 +97,38 @@ const BIOME_EVERYTHING = '**'
 const PRETTIER_PACKAGE = 'prettier'
 const PRETTIER_FILE_PATTERN = /^(\.prettierrc(\..+)?|prettier\.config\..+|\.prettierignore)$/
 const PRETTIER_IGNORE_FILE = '.prettierignore'
+const PRETTIER_PATH_PATTERN = /\/(\.bin\/prettier|prettier\/bin\/prettier\.c?js)$/
+const IGNORE_PATH_OPTION = '--ignore-path'
+const QUOTED_PATTERN = /"[^"]*"|'[^']*'/g
+const QUOTE_PATTERN = /["']/g
+const COMMAND_SEPARATOR_PATTERN = /[;&|()]+/g
+const WORD_SEPARATOR_PATTERN = /\s+/
+const ENV_ASSIGNMENT_PATTERN = /^\w+=/
+// Words that run the command after them, as in npx prettier or pnpm exec prettier.
+const RUNNER_WORDS = new Set([
+  'bun',
+  'bunx',
+  'cross-env',
+  'dlx',
+  'dotenv',
+  'env',
+  'exec',
+  'node',
+  'npm',
+  'npx',
+  'pnpm',
+  'run',
+  'time',
+  'x',
+  'yarn',
+])
 // In the order Biome looks for them.
 const BIOME_CONFIG_FILES = ['biome.json', 'biome.jsonc', '.biome.json', '.biome.jsonc']
-const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies'] as const
+const PACKAGE_FILE = 'package.json'
+const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'] as const
+// A dependency that shows the project needs the set, so an install that leaves the set out can say so.
+const SET_MARKER_PACKAGES: Partial<Record<SetName, string>> = { react: 'react-dom', next: 'next', astro: 'astro' }
 const SET_PROBLEMS_HINT = 'Fix the language sets in skillster first; bun run lint reports the same problems.'
-const INTERRUPTED_HINT =
-  'Fix the cause and re-run the same command from the same skillster commit: files that landed whole are ' +
-  'recognized by their content. If the re-run refuses a file this run cut off, delete that file first.'
 const SHORT_COMMIT_LENGTH = 7
 const ACTION_WIDTH = 8
 
@@ -111,6 +137,11 @@ const claudePath = (file: string) => `${CLAUDE_DIR_NAME}/${file}`
 const formatStep = (action: string, path: string) => `  ${action.padEnd(ACTION_WIDTH)}${path}`
 
 const describeError = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
+// The manifest may not have made it, so the hint names the sets instead of relying on it.
+const describeInterruptedHint = (sets: readonly SetName[]) =>
+  `Fix the cause and re-run from the same skillster commit with --sets ${sets.join(',')}: files that landed ` +
+  'whole are recognized by their content. If the re-run refuses a file this run cut off, delete that file first.'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -188,8 +219,7 @@ const printRefusal = (problems: readonly string[]) => {
 
 const refuseWith = (problems: string[]): Preparation => ({ problems, warnings: [], notes: [] })
 
-const parseSetNames = (value: string | undefined) => {
-  if (value === undefined) return [...SET_NAMES]
+const parseSetNames = (value: string) => {
   const names = value.split(',').map((name) => name.trim())
   if (!names.every(isSetName)) throw new Error(`--sets takes a comma-separated list of ${SET_NAMES.join(', ')}`)
   return names
@@ -211,7 +241,7 @@ const parseOptions = (args: string[]): Options => {
   }
   return {
     target: resolve(target),
-    sets: parseSetNames(values.sets?.join(',')),
+    sets: values.sets === undefined ? undefined : parseSetNames(values.sets.join(',')),
     isDryRun: values['dry-run'] === true,
     isForced: values.force === true,
   }
@@ -297,7 +327,10 @@ const readManifest = async (path: string): Promise<{ manifest?: Manifest; proble
   const parsed = stats.isFile() ? parseJsonc(await Bun.file(path).text()) : undefined
   if (isManifest(parsed)) return { manifest: parsed, problems: [] }
   return {
-    problems: [`${claudePath(MANIFEST_FILE)} isn't a valid skillster manifest; restore it from git or delete it`],
+    problems: [
+      `${claudePath(MANIFEST_FILE)} isn't a valid skillster manifest; restore it from git, or delete it and choose ` +
+        'the sets with --sets',
+    ],
   }
 }
 
@@ -331,15 +364,70 @@ const checkFiles = async (
   )
 }
 
-const usesPrettier = async (target: string) => {
-  if ((await readdir(target)).some((name) => PRETTIER_FILE_PATTERN.test(name))) return true
-  const packageFile = Bun.file(join(target, 'package.json'))
-  const packageJson = (await packageFile.exists()) ? parseJsonc(await packageFile.text()) : undefined
-  return (
-    hasKey(packageJson, PRETTIER_PACKAGE) ||
-    (isRecord(packageJson) && DEPENDENCY_FIELDS.some((field) => hasKey(packageJson[field], PRETTIER_PACKAGE)))
-  )
+const readPackageJson = async (target: string) => {
+  const packageFile = Bun.file(join(target, PACKAGE_FILE))
+  return (await packageFile.exists()) ? parseJsonc(await packageFile.text()) : undefined
 }
+
+const dependsOn = (packageJson: unknown, name: string) =>
+  isRecord(packageJson) && DEPENDENCY_FIELDS.some((field) => hasKey(packageJson[field], name))
+
+const listScripts = (packageJson: unknown) => {
+  const scripts = isRecord(packageJson) && isRecord(packageJson.scripts) ? Object.entries(packageJson.scripts) : []
+  return scripts.flatMap(([name, script]) => (typeof script === 'string' ? [{ name, script }] : []))
+}
+
+// The words of each command in a package script. A separator inside quotes, as in a glob, doesn't end
+// the command; quoted words with spaces still come apart, which the checks below don't mind.
+const splitCommands = (script: string) =>
+  script
+    .replace(QUOTED_PATTERN, (quoted) => quoted.replace(COMMAND_SEPARATOR_PATTERN, ' '))
+    .split(COMMAND_SEPARATOR_PATTERN)
+    .map((command) => command.replace(QUOTE_PATTERN, '').trim().split(WORD_SEPARATOR_PATTERN))
+
+const isPrettierWord = (word: string) =>
+  word === PRETTIER_PACKAGE || word.startsWith(`${PRETTIER_PACKAGE}@`) || PRETTIER_PATH_PATTERN.test(word)
+
+// Only the command itself counts, past env assignments, runners and their options: eslint --plugin
+// prettier doesn't run Prettier.
+const runsPrettier = (words: readonly string[]) => {
+  const command = words.find(
+    (word) => !(RUNNER_WORDS.has(word) || word.startsWith('-') || ENV_ASSIGNMENT_PATTERN.test(word))
+  )
+  return command !== undefined && isPrettierWord(command)
+}
+
+const listIgnorePaths = (words: readonly string[]) =>
+  words.flatMap((word, index) => {
+    if (word === IGNORE_PATH_OPTION) return [words[index + 1] ?? '']
+    return word.startsWith(`${IGNORE_PATH_OPTION}=`) ? [word.slice(IGNORE_PATH_OPTION.length + 1)] : []
+  })
+
+// Prettier reads ignore paths from where the script runs, the target. An unreadable one keeps nothing out.
+const keepsPrettierOut = async (target: string, ignorePath: string) => {
+  const path = resolve(target, ignorePath)
+  if (path === resolve(target, PRETTIER_IGNORE_FILE)) return true
+  try {
+    return listsClaudeDir(await Bun.file(path).text())
+  } catch {
+    return false
+  }
+}
+
+// Any --ignore-path replaces Prettier's default pair of .gitignore and .prettierignore, so one of the
+// files it names has to keep Prettier out of .claude/ instead.
+const leaksIntoClaudeDir = async (target: string, words: readonly string[]) => {
+  const ignorePaths = listIgnorePaths(words)
+  if (!runsPrettier(words) || ignorePaths.length === 0) return false
+  const kept = await Promise.all(ignorePaths.map((path) => keepsPrettierOut(target, path)))
+  return !kept.includes(true)
+}
+
+const usesPrettier = async (target: string, packageJson: unknown) =>
+  (await readdir(target)).some((name) => PRETTIER_FILE_PATTERN.test(name)) ||
+  hasKey(packageJson, PRETTIER_PACKAGE) ||
+  dependsOn(packageJson, PRETTIER_PACKAGE) ||
+  listScripts(packageJson).some(({ script }) => splitCommands(script).some(runsPrettier))
 
 const stripIgnoreAnchors = (pattern: string) =>
   pattern.replace(IGNORE_PREFIX_PATTERN, '').replace(IGNORE_SUFFIX_PATTERN, '')
@@ -360,8 +448,8 @@ const listsClaudeDir = (ignoreText: string) => {
   return lastMatch !== undefined && !IGNORE_NEGATION_PATTERN.test(lastMatch)
 }
 
-const planPrettierIgnore = async (target: string): Promise<PrettierIgnorePlan> => {
-  if (!(await usesPrettier(target))) return {}
+const planPrettierIgnore = async (target: string, packageJson: unknown): Promise<PrettierIgnorePlan> => {
+  if (!(await usesPrettier(target, packageJson))) return {}
   const path = join(target, PRETTIER_IGNORE_FILE)
   const stats = await readIfExists(() => lstat(path))
   if (stats && !stats.isFile() && !stats.isSymbolicLink()) return { problem: `${PRETTIER_IGNORE_FILE} isn't a file` }
@@ -375,13 +463,28 @@ const planPrettierIgnore = async (target: string): Promise<PrettierIgnorePlan> =
   return { append: `${separator}${CLAUDE_DIR_NAME}/${lineEnding}` }
 }
 
+// Without --sets a re-install reuses the manifest's sets, so a name skillster doesn't know mustn't
+// quietly drop files.
+const findManifestSetProblems = (options: Options, manifest: Manifest | undefined) => {
+  if (options.sets !== undefined || manifest === undefined) return []
+  const unknown = manifest.sets.filter((set) => !isSetName(set))
+  if (unknown.length === 0 && manifest.sets.length > 0) return []
+  const listed = unknown.length > 0 ? `lists sets skillster doesn't have (${unknown.join(', ')})` : 'lists no sets'
+  return [`${claudePath(MANIFEST_FILE)} ${listed}; choose the sets with --sets`]
+}
+
+// Without --sets, a re-install keeps the sets of the last one, and a first install takes them all.
+const chooseSets = (options: Options, previous: Manifest | undefined) =>
+  resolveSets(options.sets ?? previous?.sets.filter(isSetName) ?? SET_NAMES)
+
 const buildPlan = async (
   options: Options,
   previous: Manifest | undefined,
   copySetFiles: readonly string[]
 ): Promise<Plan> => {
-  const sets = resolveSets(options.sets)
+  const sets = chooseSets(options, previous)
   const claudeDir = join(options.target, CLAUDE_DIR_NAME)
+  const packageJson = await readPackageJson(options.target)
   const files = copySetFiles.filter((file) => findOwnerSets(file).some((owner) => sets.includes(owner)))
   return {
     target: options.target,
@@ -389,8 +492,9 @@ const buildPlan = async (
     sets,
     commit: (await runGit(SOURCE_ROOT, ['rev-parse', 'HEAD'])).output,
     previous,
+    packageJson,
     checks: await checkFiles(claudeDir, await loadShippedFiles(files), listInstalled(previous)),
-    prettierIgnore: await planPrettierIgnore(options.target),
+    prettierIgnore: await planPrettierIgnore(options.target, packageJson),
   }
 }
 
@@ -540,10 +644,29 @@ const findPersonalOverrides = async (sets: readonly SetName[]) => {
   }
 }
 
+const findLeakyScripts = async (target: string, packageJson: unknown) => {
+  const scripts = await Promise.all(
+    listScripts(packageJson).map(async ({ name, script }) => {
+      const leaks = await Promise.all(splitCommands(script).map((words) => leaksIntoClaudeDir(target, words)))
+      return leaks.includes(true) ? [name] : []
+    })
+  )
+  return scripts.flat()
+}
+
+const findPrettierScriptWarnings = async (target: string, packageJson: unknown) =>
+  (await findLeakyScripts(target, packageJson)).map(
+    (name) =>
+      `the "${name}" script gives Prettier an ${IGNORE_PATH_OPTION} that doesn't keep it out of ` +
+      `${CLAUDE_DIR_NAME}/, so it may format or check files there; on Prettier 3, add ` +
+      `${IGNORE_PATH_OPTION} ${PRETTIER_IGNORE_FILE} to it`
+  )
+
 const findWarnings = async (plan: Plan) => {
   const isDirty = await hasUncommittedChanges()
   return [
     ...(await findPersonalOverrides(plan.sets)),
+    ...(await findPrettierScriptWarnings(plan.target, plan.packageJson)),
     ...(isDirty ? ["the copy set has uncommitted changes, which the manifest's commit doesn't include"] : []),
   ]
 }
@@ -576,11 +699,27 @@ const findBiomeHint = async (target: string) => {
   return [`Biome: add ${entry} to files.includes in ${config}, after "**"; the installer doesn't edit Biome configs.`]
 }
 
+const findLeftOutSets = ({ sets, packageJson }: Plan) =>
+  SET_NAMES.flatMap((set) => {
+    const marker = SET_MARKER_PACKAGES[set]
+    return marker !== undefined && !sets.includes(set) && dependsOn(packageJson, marker) ? [{ set, marker }] : []
+  })
+
+const findLeftOutSetsHint = (plan: Plan) => {
+  const leftOut = findLeftOutSets(plan)
+  if (leftOut.length === 0) return []
+  const listed = leftOut.map(({ set, marker }) => `${set} (${marker})`).join(', ')
+  const suggested = SET_NAMES.filter((set) => plan.sets.includes(set) || leftOut.some((entry) => entry.set === set))
+  return [
+    `${PACKAGE_FILE} suggests sets this install leaves out: ${listed}. Add them with --sets ${suggested.join(',')}.`,
+  ]
+}
+
 const findNotes = async (plan: Plan) => {
   const sets = plan.sets.join(', ')
   const previousSets = plan.previous?.sets.join(', ') ?? sets
   const setChange = previousSets === sets ? [] : [`Sets change from ${previousSets} to ${sets}.`]
-  return [...setChange, ...(await findBiomeHint(plan.target))]
+  return [...setChange, ...findLeftOutSetsHint(plan), ...(await findBiomeHint(plan.target))]
 }
 
 const planInstall = async (options: Options): Promise<Preparation> => {
@@ -590,7 +729,8 @@ const planInstall = async (options: Options): Promise<Preparation> => {
   const setProblems = await findSetProblems(copySetFiles)
   if (setProblems.length > 0) return refuseWith([...setProblems, SET_PROBLEMS_HINT])
   const manifestPath = join(options.target, CLAUDE_DIR_NAME, MANIFEST_FILE)
-  const { manifest, problems: manifestProblems } = await readManifest(manifestPath)
+  const { manifest, problems: readProblems } = await readManifest(manifestPath)
+  const manifestProblems = [...readProblems, ...findManifestSetProblems(options, manifest)]
   if (manifestProblems.length > 0) return refuseWith(manifestProblems)
   const plan = await buildPlan(options, manifest, copySetFiles)
   const [problems, warnings, notes] = await Promise.all([
@@ -689,7 +829,7 @@ const applyPlan = async (plan: Plan) => {
     await writeFresh(join(plan.claudeDir, MANIFEST_FILE), formatManifest(plan), FILE_MODE)
   } catch (error) {
     console.error(`Install stopped partway: ${describeError(error)}`)
-    console.error(INTERRUPTED_HINT)
+    console.error(describeInterruptedHint(plan.sets))
     return EXIT_FAILED
   }
   console.log('Installed.')

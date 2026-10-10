@@ -1,6 +1,6 @@
 ---
 name: dev-next
-description: Implements Next.js code (App Router, server and client components, route handlers, server actions), then runs the project's checks until clean. Use it for self-contained implementation tasks in a Next.js app. It edits code, so tell it what the user asked for and any deliberate deviations from the house rules, and don't run two agents on the same files at once. Once its change is finished, run reviewer-r on it.
+description: Implements Next.js code (App Router, server and client components, route handlers, server actions), then runs the project's checks until clean. Use it for self-contained implementation tasks in a Next.js app. It edits code, so tell it what the user asked for and any deliberate deviations from the house rules, and don't run two agents on the same files at once or edit its files while it runs. Once its change is finished, run reviewer-r on it.
 model: inherit
 color: purple
 skills:

@@ -25,7 +25,7 @@ The core works for any language. Each other set adds one language or framework a
 | Next.js (`next`, needs `react`) | — | — | `dev-next` |
 | Astro (`astro`, needs `js`) | — | — | `dev-astro` |
 
-Each `dev-*` agent implements a task and hands its change to the reviewer its description names. The js rules also cover `.astro` files, whose frontmatter is TypeScript.
+Each `dev-*` agent implements a task and hands its change to the reviewer its description names. The js rules also cover `.astro` files, whose frontmatter is TypeScript, and `lint-and-format.md` covers `.mdx` as well.
 
 `scripts/copy-set.ts` holds this mapping for the installer and `lint:claude`, so a new rule, skill or agent goes into a set there too: lint fails while a copy-set file is in no set or in two, a listed one is missing, or an agent preloads a skill its set doesn't bring. Only files git would commit count, so gitignored ones never ship.
 
@@ -47,11 +47,11 @@ Each `dev-*` agent implements a task and hands its change to the reviewer its de
 Run `bun scripts/install.ts <target> [--dry-run] [--sets core,js,react,next,astro] [--force]` from a clean commit of this repo: the manifest records `HEAD`, and the installer warns about uncommitted copy-set changes. It has no package script on purpose: one named `install` would run on every `bun install`.
 
 - The target must be a git repository root that isn't skillster, a clone of it or your home folder: in a monorepo package, the agents aren't found from the root.
-- `--sets` defaults to all sets. `core` is always included, and each set brings the ones it needs: `react` and `astro` bring `js`, and `next` brings `react`. Add `react` wherever there's React web code, Astro islands included, since reviewer-r reviews it.
+- Without `--sets`, a re-install keeps the sets of the last one, and a first install takes them all. A manifest whose sets skillster doesn't know needs `--sets`. `core` is always included, and each set brings the ones it needs: `react` and `astro` bring `js`, and `next` brings `react`. Add `react` wherever there's React web code, Astro islands included, since reviewer-r reviews it. The installer names any set the target's `package.json` suggests but the install leaves out: `react-dom` suggests `react`, and `next` and `astro` suggest their own.
 - Files are copied, never symlinked, and never written through a symlink: rules reached through a symlink need approval, and the scoped ones don't load at all.
 - Nothing is written until every check passes. The installer refuses when a file it would write holds other content and isn't in its manifest, or when an agent, skill or top-level command elsewhere in the target's `.claude/` uses one of our names: duplicate agent names resolve arbitrarily, and a skill hides a command. A file that's already identical is adopted. It warns when `~/.claude/skills` has a skill with one of our names, since that one would win.
-- `.claude/skillster-manifest.json` in the target records this repo's commit, the sets and a sha256 per installed file. Re-installing deletes files that are no longer shipped, and refuses to overwrite or delete a locally edited one unless `--force` is given. After an interrupted install, re-run the same command from the same commit: files that landed are adopted, and one cut off mid-write is refused until you delete it.
-- It adds `.claude/` to `.prettierignore` when the target uses Prettier. For Biome it prints the `files.includes` entry to add unless the config already excludes `.claude`, as this repo's `biome.jsonc` does, and leaves the config alone.
+- `.claude/skillster-manifest.json` in the target records this repo's commit, the sets and a sha256 per installed file. Re-installing deletes files that are no longer shipped, and refuses to overwrite or delete a locally edited one unless `--force` is given. After an interrupted install, re-run from the same commit with the `--sets` the installer prints: files that landed are adopted, and one cut off mid-write is refused until you delete it.
+- It adds `.claude/` to `.prettierignore` when the target uses Prettier, and warns about a package script whose `--ignore-path` makes Prettier skip `.prettierignore` without keeping it out of `.claude/` some other way. For Biome it prints the `files.includes` entry to add unless the config already excludes `.claude`, as this repo's `biome.jsonc` does, and leaves the config alone.
 - `--dry-run` prints the plan and changes nothing.
 
 ## Third-party skills

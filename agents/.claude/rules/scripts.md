@@ -3,8 +3,9 @@
 A script meant to be run as a command, by path or from `PATH`, in any language:
 
 - Starts with a shebang for its interpreter, such as `#!/bin/sh`. Language rules can name the one to use.
+- Follows its language's rules even without a file extension, such as `bin/deploy`, though their `paths:` won't load them for it: read them yourself. Linters and type-checkers that pick files by extension skip it too, so keep its code in a module they check, or say it went unchecked.
 - Is executable (`chmod a+x`, or `git add --chmod=+x` where git ignores file modes), so git records it as mode `100755`.
-- Defines its usage text as a `USAGE` constant, cased the way the language cases constants, in its first lines, right after the shebang and imports. On `-h` or `--help` it prints `USAGE` and exits with code 0:
+- Defines its usage text as a `USAGE` constant, cased the way the language cases constants, right after the shebang, imports, type declarations and any constants it interpolates, and before other code. On `-h` or `--help` it prints `USAGE` and exits with code 0:
 
   ```sh
   #!/bin/sh
@@ -23,3 +24,6 @@ A script meant to be run as a command, by path or from `PATH`, in any language:
     esac
   done
   ```
+
+- Checks for `-h` and `--help` itself, before an argument parser that prints help of its own, such as Python's argparse, gets to them.
+- As a wrapper, which passes its arguments on to another command, takes `-h` and `--help` as its own only before the first argument it passes on, so that `with-env git --help` still shows git's help.
