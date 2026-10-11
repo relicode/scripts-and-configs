@@ -87,7 +87,11 @@ type GitResult = { isOk: boolean; output: string; error: string }
 // What to append to .prettierignore, or why it can't be appended to.
 type PrettierIgnorePlan = { append?: string; problem?: string }
 
-// packageJson is the target's own; packageJsons holds every package.json in it, workspaces included.
+// What shows which sets a project needs: every package.json in it, workspaces included, and whether it
+// has a Cargo.toml anywhere.
+type ProjectStack = { packageJsons: readonly unknown[]; hasCargoToml: boolean }
+
+// packageJson is the target's own package.json.
 type Plan = {
   target: string
   claudeDir: string
@@ -95,7 +99,7 @@ type Plan = {
   commit: string
   previous?: Manifest
   packageJson: unknown
-  packageJsons: unknown[]
+  stack: ProjectStack
   checks: FileCheck[]
   mcpJson: McpJsonState
   servers: ServerCheck[]
@@ -184,11 +188,14 @@ const RUNNER_WORDS = new Set([
 const BIOME_CONFIG_FILES = ['biome.json', 'biome.jsonc', '.biome.json', '.biome.jsonc']
 const PACKAGE_FILE = 'package.json'
 const PACKAGE_FILES = `:(glob)**/${PACKAGE_FILE}`
+const CARGO_FILE = 'Cargo.toml'
+const CARGO_FILES = `:(glob)**/${CARGO_FILE}`
 const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'] as const
-// Any package.json shows the project needs js; these dependencies show the other sets it needs, so a
-// first install can suggest them and an install that leaves one out can say so. A marker ending in /
-// stands for every package in that scope.
+// Any package.json shows the project needs js, and any Cargo.toml that it needs rust; these
+// dependencies show the other sets it needs, so a first install can suggest them and an install that
+// leaves one out can say so. A marker ending in / stands for every package in that scope.
 const JS_SET: SetName = 'js'
+const RUST_SET: SetName = 'rust'
 const SET_MARKERS: Partial<Record<SetName, readonly string[]>> = {
   react: ['react-dom'],
   next: ['next'],
@@ -531,6 +538,17 @@ const readPackageJsons = async (target: string) => {
   return parsed.filter(isRecord)
 }
 
+// A Cargo.toml git lists but the working tree lacks, such as a deleted one, doesn't count, just as a
+// package.json that can't be read doesn't.
+const readProjectStack = async (target: string) => {
+  const [packageJsons, cargoFiles] = await Promise.all([
+    readPackageJsons(target),
+    listProjectFiles(target, CARGO_FILES),
+  ])
+  const present = await Promise.all(cargoFiles.map((file) => Bun.file(join(target, file)).exists()))
+  return { packageJsons, hasCargoToml: present.includes(true) }
+}
+
 const isMarkedBy = (dependency: string, marker: string) =>
   marker.endsWith(SCOPE_MARKER_SUFFIX) ? dependency.startsWith(marker) : dependency === marker
 
@@ -642,22 +660,29 @@ const findManifestSetProblems = (options: Options, manifest: Manifest | undefine
   return [`${claudePath(MANIFEST_FILE)} ${listed}; choose the sets with --sets`]
 }
 
-// The dependency or file that shows the project needs a set, if any package.json has one.
-const findSetMarker = (set: SetName, packageJsons: readonly unknown[]) => {
+// The file or dependency that shows the project needs a set: any package.json or Cargo.toml, or a
+// dependency in a package.json.
+const findSetMarker = (set: SetName, { packageJsons, hasCargoToml }: ProjectStack) => {
   if (set === JS_SET) return packageJsons.length > 0 ? PACKAGE_FILE : undefined
+  if (set === RUST_SET) return hasCargoToml ? CARGO_FILE : undefined
   return SET_MARKERS[set]?.find((marker) => packageJsons.some((packageJson) => dependsOn(packageJson, marker)))
 }
 
-const suggestSets = (packageJsons: readonly unknown[]) =>
-  resolveSets(SET_NAMES.filter((set) => findSetMarker(set, packageJsons) !== undefined))
+const suggestSets = (stack: ProjectStack) =>
+  resolveSets(SET_NAMES.filter((set) => findSetMarker(set, stack) !== undefined))
+
+// The kinds of file the suggestions come from, as in "package.json and Cargo.toml".
+const describeStackFiles = ({ packageJsons, hasCargoToml }: ProjectStack) =>
+  [...(packageJsons.length > 0 ? [PACKAGE_FILE] : []), ...(hasCargoToml ? [CARGO_FILE] : [])].join(' and ')
 
 // Every set's MCP servers start in each session, so taking them all is no default.
-const describeFirstInstall = (packageJsons: readonly unknown[]) => {
-  const suggested = `--sets ${suggestSets(packageJsons).join(',')}`
+const describeFirstInstall = (stack: ProjectStack) => {
+  const suggested = `--sets ${suggestSets(stack).join(',')}`
+  const files = describeStackFiles(stack)
   const suggestion =
-    packageJsons.length > 0
-      ? `the project's ${PACKAGE_FILE} files suggest ${suggested}`
-      : `start from ${suggested} and add the sets the project needs`
+    files === ''
+      ? `start from ${suggested} and add the sets the project needs`
+      : `the project's ${files} files suggest ${suggested}`
   return `a first install needs --sets, since each set's MCP servers start in every session; ${suggestion}`
 }
 
@@ -670,7 +695,7 @@ const buildPlan = async (
   options: Options,
   previous: Manifest | undefined,
   source: Source,
-  packageJsons: unknown[]
+  stack: ProjectStack
 ): Promise<Plan> => {
   const sets = chooseSets(options, previous)
   const claudeDir = join(options.target, CLAUDE_DIR_NAME)
@@ -683,7 +708,7 @@ const buildPlan = async (
     commit: (await runGit(SOURCE_ROOT, ['rev-parse', 'HEAD'])).output,
     previous,
     packageJson,
-    packageJsons,
+    stack,
     checks: await checkFiles(claudeDir, await loadShippedFiles(files), listInstalled(previous)),
     mcpJson,
     servers: checkServers(mcpJson, pickShippedServers(source.servers, sets), listInstalledServers(previous)),
@@ -1073,9 +1098,9 @@ const findBiomeHint = async (target: string) => {
   return [`Biome: add ${entry} to files.includes in ${config}, after "**"; the installer doesn't edit Biome configs.`]
 }
 
-const findLeftOutSets = ({ sets, packageJsons }: Plan) =>
+const findLeftOutSets = ({ sets, stack }: Plan) =>
   SET_NAMES.flatMap((set) => {
-    const marker = sets.includes(set) ? undefined : findSetMarker(set, packageJsons)
+    const marker = sets.includes(set) ? undefined : findSetMarker(set, stack)
     return marker === undefined ? [] : [{ set, marker }]
   })
 
@@ -1085,8 +1110,8 @@ const findLeftOutSetsHint = (plan: Plan) => {
   const listed = leftOut.map(({ set, marker }) => `${set} (${marker})`).join(', ')
   const suggested = SET_NAMES.filter((set) => plan.sets.includes(set) || leftOut.some((entry) => entry.set === set))
   return [
-    `The project's ${PACKAGE_FILE} files suggest sets this install leaves out: ${listed}. Add them with ` +
-      `--sets ${suggested.join(',')}.`,
+    `The project's files suggest sets this install leaves out: ${listed}. ` +
+      `Add them with --sets ${suggested.join(',')}.`,
   ]
 }
 
@@ -1108,9 +1133,9 @@ const planInstall = async (options: Options): Promise<Preparation> => {
   const { manifest, problems: readProblems } = await readManifest(manifestPath)
   const manifestProblems = [...readProblems, ...findManifestSetProblems(options, manifest)]
   if (manifestProblems.length > 0) return refuseWith(manifestProblems)
-  const packageJsons = await readPackageJsons(options.target)
-  if (options.sets === undefined && manifest === undefined) return refuseWith([describeFirstInstall(packageJsons)])
-  const plan = await buildPlan(options, manifest, { files: copySetFiles, servers }, packageJsons)
+  const stack = await readProjectStack(options.target)
+  if (options.sets === undefined && manifest === undefined) return refuseWith([describeFirstInstall(stack)])
+  const plan = await buildPlan(options, manifest, { files: copySetFiles, servers }, stack)
   const [problems, warnings, notes] = await Promise.all([
     findProblems(plan, options.isForced),
     findWarnings(plan),

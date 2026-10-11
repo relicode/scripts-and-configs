@@ -12,7 +12,7 @@ bun scripts/install.ts ~/code/my-app --sets next --dry-run
 bun scripts/install.ts ~/code/my-app --sets next
 ```
 
-Not sure which sets? Leave out `--sets`: the first install stops and suggests them from the project's `package.json` files.
+Not sure which sets? Leave out `--sets`: the first install stops and suggests them from the project's `package.json` and `Cargo.toml` files.
 
 Then commit what it wrote in your project, start `claude` there, and approve the MCP servers when it asks.
 
@@ -42,7 +42,7 @@ The core works for any language. Every other set adds a language, framework or p
 | `aws` | `aws-mcp` server | |
 | `rust` | Rust and lint-and-format rules, `review-rust` and `best-practices-rust` skills, `dev-rust` and `reviewer-rust` agents | |
 
-So `--sets next` installs core, js, web, react and next. Add `react` for React web code outside Next.js and Astro, since `reviewer-react` is the one that reviews it; `next` and `astro` bring it themselves.
+So `--sets next` installs core, js, web, react and next. For React web code outside Next.js and Astro, use `react` instead.
 
 ## Installing
 
@@ -61,7 +61,7 @@ So `--sets next` installs core, js, web, react and next. Add `react` for React w
 
 `--sets` takes a comma-separated list, such as `--sets next,mui,aws`. Name the sets you want and the ones they build on come along.
 
-A first install needs `--sets`: installing every set would start all of their MCP servers in every session. Without it, the installer stops and suggests sets from the project's `package.json` files, workspaces included:
+A first install needs `--sets`: installing every set would start all of their MCP servers in every session. Without it, the installer stops and suggests sets from the project's `package.json` and `Cargo.toml` files, workspaces included:
 
 ```text
 $ bun scripts/install.ts ~/code/my-app
@@ -69,7 +69,7 @@ Refusing to install; nothing was changed:
   a first install needs --sets, since each set's MCP servers start in every session; the project's package.json files suggest --sets core,js,web,react,next
 ```
 
-No `package.json` shows that a project needs `mobile` or `rust`, so name those yourself.
+Nothing the installer reads shows that a project tests on mobile browsers, so add `mobile` yourself.
 
 ### What it writes
 
@@ -94,7 +94,7 @@ The installer is careful with your files:
 
 ### After installing
 
-1. Look over what it wrote (`.claude/`, `.mcp.json`, and `.prettierignore` if it changed) and commit it, so the whole team gets it.
+1. Look over what it wrote (`.claude/`, `.mcp.json`, and `.prettierignore` if it changed) and commit to include it in the repository.
 2. Start `claude` in the project. It asks each developer once to approve the new MCP servers.
 3. Run `/mcp` to check that the servers connect.
 
