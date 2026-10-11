@@ -16,11 +16,10 @@
       "args": [
         "mcp-proxy-for-aws-cli==1.7.0",
         "${AWS_MCP_ENDPOINT:-https://aws-mcp.eu-central-1.api.aws/mcp}",
-        "--profile",
-        "${AWS_PROFILE:-default}",
         "--metadata",
         "AWS_REGION=${AWS_REGION:-eu-west-1}",
-        "--read-only"
+        "--read-only",
+        "--skip-auth"
       ]
     }
   }

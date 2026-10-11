@@ -51,7 +51,7 @@ So `--sets next` installs core, js, web, react and next. Add `react` for React w
 - Each developer on the project needs what its MCP servers run on. `context7` and `astro-docs` are hosted and need nothing; the others need:
   - `chrome-devtools`: Bun, Node.js and Chrome
   - `next-devtools` and `mui-mcp`: Bun and Node.js
-  - `aws-mcp`: [uv](https://docs.astral.sh/uv/) and an AWS profile
+  - `aws-mcp`: [uv](https://docs.astral.sh/uv/)
   - `maestro`: the [Maestro CLI](https://maestro.dev), and an Android emulator or device, or an iOS simulator (macOS only), for it to drive
 
   They need Node.js because `bunx` starts their packages as Node scripts. The installer warns when a server's command (`bunx`, `uvx` or `maestro`) isn't on your `PATH`.
@@ -195,7 +195,7 @@ Claude uses them when a task calls for it, and naming one in your prompt steers 
 
 `next-devtools` reads a running dev server only on Next.js 16 or newer; its docs lookups need no dev server.
 
-`aws-mcp` signs its requests with your own AWS credentials, from `AWS_PROFILE` or else the `default` profile, and won't connect without that profile and valid credentials for it. It runs with `--read-only`, which hides every tool AWS doesn't mark read-only. That leaves its tools for AWS documentation, skills and regional availability; the ones that run scripts against AWS APIs or sign Amazon S3 URLs aren't marked read-only, so `aws-mcp` currently can't read or change anything in your account. [`CLAUDE.md`](CLAUDE.md) explains how to lift `--read-only` for yourself.
+`aws-mcp` runs with `--read-only`, which hides every tool AWS doesn't mark read-only: the ones that run scripts against AWS APIs or sign Amazon S3 URLs aren't, so `aws-mcp` currently can't read or change anything in your account. That leaves its tools for AWS documentation, skills and regional availability, which AWS answers without credentials, so `aws-mcp` needs no AWS setup: it sends its requests unsigned when the AWS SDK finds no credentials, and otherwise signs them with the profile in `AWS_PROFILE`, or else with environment variables, the `default` profile or the SDK's other usual sources. Credentials it finds but can't load still break it: an `AWS_PROFILE` naming a missing profile stops it from starting, and an expired SSO login stops it from connecting until you run `aws sso login`. [`CLAUDE.md`](CLAUDE.md) explains how to lift `--read-only` for yourself.
 
 ## Working on skillster
 

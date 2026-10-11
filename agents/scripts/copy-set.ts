@@ -117,9 +117,10 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     requires: ['web'],
   },
   // aws-mcp runs AWS's own SigV4 proxy, from the distribution that pins its whole dependency tree. It
-  // signs with the developer's AWS profile, so it runs with --read-only, which hides every tool AWS doesn't
-  // mark read-only, aws___run_script included. That currently leaves docs, skills and regional availability,
-  // and nothing that reads or changes the account.
+  // signs with the developer's AWS credentials when it finds any, so it runs with --read-only, which hides
+  // every tool AWS doesn't mark read-only, aws___run_script included. That currently leaves docs, skills
+  // and regional availability, and nothing that reads or changes the account. AWS serves those unsigned
+  // too, so --skip-auth lets developers without AWS credentials use it.
   aws: {
     rules: [],
     skills: [],
