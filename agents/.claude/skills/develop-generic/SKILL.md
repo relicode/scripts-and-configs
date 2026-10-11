@@ -22,13 +22,14 @@ Implementing a change means building what was asked in the project's own style, 
 ## Implementing
 
 - Follow the established style the way "Existing style wins" in `.claude/rules/clean-code.md` describes.
-- When the project has docs MCP servers, such as context7, astro-docs, next-devtools or mui-mcp, look up library and framework APIs there rather than from memory.
+- When the project has docs MCP servers, such as context7, astro-docs or mui-mcp, look up library and framework APIs there rather than from memory.
 - Add or update tests for the change where the project has tests, with its runner and layout. If it has none, say so instead of setting them up.
 - Apply the preloaded best-practices skills to the code they cover. When the reviewer you'll name preloads a best-practices skill you don't have (its `skills:` in `.claude/agents/`), read that skill's `SKILL.md` and apply it too: the reviewer checks your change against it.
 
 ## Validating
 
 - Run the project's format, lint (type-checks included) and tests, and fix what they report until they pass for the files you changed. The project's lint-and-format rule for the language says how, where there is one; other ecosystems have equivalent task targets (Gradle, Make, just).
+- When the code you changed is built by a dev server that an MCP server reads, such as next-devtools, also check it there for compile errors, and for runtime errors on pages a browser already has open. Use only a dev server that's already running from your working tree, and list what you couldn't check under Not Run: don't start one, since from Next.js 16.3 a `next dev` started by an agent adds its own block to `AGENTS.md` or `CLAUDE.md`. In next-devtools, `get_project_metadata` gives a server's path, `get_compilation_issues` its compile errors and `get_errors` the runtime errors of open pages.
 - Never make a check pass by weakening it: no skipped tests, assertions or snapshots bent to fit the code, loosened configs, or suppressions that hide a real problem. Change a test or snapshot only where the task changes the behavior it checks; one you believe is wrong goes under Decisions.
 - Failures in files you didn't change aren't yours to fix unless your change caused them: report them.
 - Finish with "Before saying you're done" in `.claude/rules/clean-code.md`.
