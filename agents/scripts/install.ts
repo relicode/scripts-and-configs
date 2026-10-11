@@ -194,7 +194,6 @@ const SET_MARKERS: Partial<Record<SetName, readonly string[]>> = {
   next: ['next'],
   mui: ['@mui/material'],
   astro: ['astro'],
-  mobile: ['expo', 'react-native'],
   aws: ['aws-cdk-lib', '@aws-sdk/'],
 }
 const SCOPE_MARKER_SUFFIX = '/'

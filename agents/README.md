@@ -1,6 +1,6 @@
 # skillster
 
-A ready-made Claude Code setup for your projects: house rules, developer and reviewer agents, the skills behind them, and MCP servers for docs, browsers, devices and AWS. One command installs it into a project, and it comes in language sets, so each project gets only what fits its stack.
+A ready-made Claude Code setup for your projects: house rules, developer and reviewer agents, the skills behind them, and MCP servers for docs, desktop and mobile browsers, and AWS. One command installs it into a project, and it comes in language sets, so each project gets only what fits its stack.
 
 ## Quick start
 
@@ -23,7 +23,7 @@ Then commit what it wrote in your project, start `claude` there, and approve the
 | Rules | Coding standards: clean code, scripts, TypeScript, Bun, lint and format, React | Loaded automatically, the language rules only for matching files |
 | Agents | Developers that implement a task, and reviewers that review and fix a change | Ask Claude to use one, or @-mention it |
 | Skills | The procedures and guides the agents follow | Preloaded by the agents, or run as `/name` |
-| MCP servers | Docs lookups, a headless Chrome, simulators and devices, AWS | Claude calls them when a task needs them |
+| MCP servers | Docs lookups, a headless Chrome, mobile browsers through Maestro, AWS | Claude calls them when a task needs them |
 
 ### Language sets
 
@@ -38,7 +38,7 @@ The core works for any language. Every other set adds a language, framework or p
 | `next` | `dev-next` and `reviewer-next` agents, `next-devtools` server | `react` |
 | `mui` | `mui-mcp` server | `react` |
 | `astro` | `dev-astro` and `reviewer-astro` agents, `astro-docs` server | `react` |
-| `mobile` | `maestro` server | `js` |
+| `mobile` | `maestro` server, for end-to-end tests on mobile browsers | `web` |
 | `aws` | `aws-mcp` server | |
 
 So `--sets next` installs core, js, web, react and next. Add `react` for React web code outside Next.js and Astro, since `reviewer-react` is the one that reviews it; `next` and `astro` bring it themselves.
@@ -52,7 +52,7 @@ So `--sets next` installs core, js, web, react and next. Add `react` for React w
   - `chrome-devtools`: Bun, Node.js and Chrome
   - `next-devtools` and `mui-mcp`: Bun and Node.js
   - `aws-mcp`: [uv](https://docs.astral.sh/uv/) and an AWS profile
-  - `maestro`: the [Maestro CLI](https://maestro.dev)
+  - `maestro`: the [Maestro CLI](https://maestro.dev), and an Android emulator or device, or an iOS simulator (macOS only), for it to drive
 
   They need Node.js because `bunx` starts their packages as Node scripts. The installer warns when a server's command (`bunx`, `uvx` or `maestro`) isn't on your `PATH`.
 
@@ -119,7 +119,7 @@ The dev agents implement a task, run the project's checks (format, lint, type-ch
 | Stack | Set | Implements | Reviews |
 | --- | --- | --- | --- |
 | Code no other reviewer covers, in any language | core | | `reviewer` |
-| TypeScript and JavaScript: scripts, CLIs, Ink UIs, `Bun.serve` servers, libraries, `bun test` suites, React Native and Expo apps | js | `dev-bun` | `reviewer-bun` |
+| TypeScript and JavaScript: scripts, CLIs, Ink UIs, `Bun.serve` servers, libraries, `bun test` suites | js | `dev-bun` | `reviewer-bun` |
 | React web code outside Next.js and Astro: single-page apps, component libraries | react | `dev-bun` | `reviewer-react` |
 | Next.js: App Router, server and client components, route handlers, server actions | next | `dev-next` | `reviewer-next` |
 | Astro: components, content collections, islands, SSR adapters | astro | `dev-astro` | `reviewer-astro` |
@@ -190,7 +190,7 @@ Claude uses them when a task calls for it, and naming one in your prompt steers 
 | `next-devtools` | next | "Use next-devtools to show the errors in the running dev server." |
 | `mui-mcp` | mui | "Look up the DataGrid column props with mui-mcp." |
 | `astro-docs` | astro | "Search astro-docs for how content collection loaders work." |
-| `maestro` | mobile | "Use maestro to launch the app on the iOS simulator and walk through sign-in." |
+| `maestro` | mobile | "Use maestro to open the staging site in Chrome on the Android emulator and walk through sign-in." |
 | `aws-mcp` | aws | "Ask aws-mcp which IAM permissions a Lambda function needs to read from an SQS queue." |
 
 `next-devtools` reads a running dev server only on Next.js 16 or newer; its docs lookups need no dev server.

@@ -105,14 +105,16 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     mcpServers: ['astro-docs'],
     requires: ['react'],
   },
-  // Expo and React Native apps, whose JS/TS the js rules cover. maestro is the Maestro CLI's own
-  // server, so its version is whatever the developer installed.
+  // End-to-end tests of web apps on mobile browsers, so mobile brings web. maestro drives those browsers on
+  // Android emulators and devices and iOS simulators. It's the Maestro CLI's own server, so its version is
+  // whatever the developer installed. No dependency shows that a project tests on mobile browsers, so
+  // install.ts never suggests this set.
   mobile: {
     rules: [],
     skills: [],
     agents: [],
     mcpServers: ['maestro'],
-    requires: ['js'],
+    requires: ['web'],
   },
   // aws-mcp runs AWS's own SigV4 proxy, from the distribution that pins its whole dependency tree. It
   // signs with the developer's AWS profile, so --read-only keeps the tools that need write access out of
