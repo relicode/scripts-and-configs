@@ -31,9 +31,10 @@ How to write and change code in this project. Reviewers check changes against it
 - Write asynchronous code in the language's direct style (`async`/`await`, coroutines), not callback chains.
 - Keep related code together: no factories for two objects, and no utils file for a single function.
 
-## Comments
+## Comments and docs
 
 - Comment _why_, never _what_. Delete comments that restate the code.
+- Point at code by symbol name and at docs by heading, not by line number, which drifts with the next edit. Where neither fits, add a named anchor comment and point at that. Links pinned to a commit are fine, and so are line numbers in chat, reports and commit messages, which describe one moment.
 
 ## Before editing a file
 
