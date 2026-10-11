@@ -20,7 +20,7 @@ Then commit what it wrote in your project, start `claude` there, and approve the
 
 | | What it is | How it's used |
 | --- | --- | --- |
-| Rules | Coding standards: clean code, scripts, TypeScript, Bun, lint and format, React, Rust | Loaded automatically, the language rules only for matching files |
+| Rules | Coding standards: clean code, scripts, shell commands, TypeScript, Bun, lint and format, React, Rust | Loaded automatically, the language rules only for matching files |
 | Agents | Developers that implement a task, and reviewers that review and fix a change | Ask Claude to use one, or @-mention it |
 | Skills | The procedures and guides the agents follow | Preloaded by the agents, or run as `/name` |
 | MCP servers | Lookups in library, framework and AWS docs, a headless Chrome, mobile browsers through Maestro | Claude calls them when a task needs them |
@@ -31,7 +31,7 @@ The core works for any language. Every other set adds a language, framework or p
 
 | Set | Adds | Builds on |
 | --- | --- | --- |
-| `core`, always installed | `clean-code` and `scripts` rules, `review-generic` and `develop-generic` skills, `reviewer` agent, `context7` server | |
+| `core`, always installed | `clean-code`, `scripts` and `shell` rules, `review-generic` and `develop-generic` skills, `reviewer` agent, `context7` server | |
 | `js` | TypeScript, Bun and lint-and-format rules, `review-bun` and `best-practices-bun` skills, `dev-bun` and `reviewer-bun` agents | |
 | `web` | `chrome-devtools` server | `js` |
 | `react` | React rule, `review-react` and `best-practices-react` skills, `reviewer-react` agent | `web` |
@@ -113,7 +113,7 @@ Everything works in an ordinary `claude` session in your project.
 
 ### Rules
 
-Nothing to do. `clean-code.md` and `scripts.md` load in every session, and the language rules load when Claude works on matching files, such as `*.ts` or `package.json`. Claude follows them when it writes code, and the agents check work against them. `/context` lists the rule files a session loaded at startup.
+Nothing to do. `clean-code.md`, `scripts.md` and `shell.md` load in every session, and the language rules load when Claude works on matching files, such as `*.ts` or `package.json`. Claude follows them when it writes code, and the agents check work against them. `/context` lists the rule files a session loaded at startup.
 
 ### Agents
 

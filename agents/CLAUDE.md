@@ -21,7 +21,7 @@ The core works for any language. Each other set adds one language, framework or 
 
 | Set | Rules | Skills | Agents | MCP servers |
 | --- | --- | --- | --- | --- |
-| Core (`core`) | `clean-code.md`, `scripts.md` | `review-generic`, `develop-generic` | `reviewer` | `context7` |
+| Core (`core`) | `clean-code.md`, `scripts.md`, `shell.md` | `review-generic`, `develop-generic` | `reviewer` | `context7` |
 | JS/TS and Bun (`js`) | `js/typescript.md`, `js/lint-and-format.md`, `js/bun.md` | `review-bun`, `best-practices-bun` | `dev-bun`, `reviewer-bun` | — |
 | Web (`web`, needs `js`) | — | — | — | `chrome-devtools` |
 | React (`react`, needs `web`) | `js/react.md` | `review-react`, `best-practices-react` | `reviewer-react` | — |
