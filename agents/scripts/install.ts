@@ -2,7 +2,7 @@
 
 // Installs language sets from this repo's copy set into another repository's .claude/, and merges
 // the sets' MCP servers into its .mcp.json:
-//   bun scripts/install.ts <target> [--dry-run] [--sets core,js,web,react,next,mui,astro,mobile,aws] [--force]
+//   bun scripts/install.ts <target> [--dry-run] [--sets core,js,web,react,next,mui,astro,mobile,aws,rust] [--force]
 // Nothing is written until every check passes. The manifest records what was installed, so a
 // re-install can tell its own files and servers from the project's and notice local edits.
 

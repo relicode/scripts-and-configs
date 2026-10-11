@@ -22,7 +22,7 @@ type LanguageSet = {
   requires: readonly SetName[]
 }
 
-export const SET_NAMES = ['core', 'js', 'web', 'react', 'next', 'mui', 'astro', 'mobile', 'aws'] as const
+export const SET_NAMES = ['core', 'js', 'web', 'react', 'next', 'mui', 'astro', 'mobile', 'aws', 'rust'] as const
 export const CLAUDE_DIR_NAME = '.claude'
 export const MCP_JSON_FILE = '.mcp.json'
 export const RULES_FOLDER = 'rules'
@@ -126,6 +126,15 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     skills: [],
     agents: [],
     mcpServers: ['aws-mcp'],
+    requires: [],
+  },
+  // Rust needs nothing from the JS/TS sets, and context7 in core already looks up crate docs, so the set
+  // ships no MCP server of its own.
+  rust: {
+    rules: ['rust/rust.md', 'rust/lint-and-format.md'],
+    skills: ['review-rust', 'best-practices-rust'],
+    agents: ['dev-rust', 'reviewer-rust'],
+    mcpServers: [],
     requires: [],
   },
 }

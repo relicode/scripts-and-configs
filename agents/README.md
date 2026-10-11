@@ -20,7 +20,7 @@ Then commit what it wrote in your project, start `claude` there, and approve the
 
 | | What it is | How it's used |
 | --- | --- | --- |
-| Rules | Coding standards: clean code, scripts, TypeScript, Bun, lint and format, React | Loaded automatically, the language rules only for matching files |
+| Rules | Coding standards: clean code, scripts, TypeScript, Bun, lint and format, React, Rust | Loaded automatically, the language rules only for matching files |
 | Agents | Developers that implement a task, and reviewers that review and fix a change | Ask Claude to use one, or @-mention it |
 | Skills | The procedures and guides the agents follow | Preloaded by the agents, or run as `/name` |
 | MCP servers | Lookups in library, framework and AWS docs, a headless Chrome, mobile browsers through Maestro | Claude calls them when a task needs them |
@@ -40,6 +40,7 @@ The core works for any language. Every other set adds a language, framework or p
 | `astro` | `dev-astro` and `reviewer-astro` agents, `astro-docs` server | `react` |
 | `mobile` | `maestro` server, for end-to-end tests on mobile browsers | `web` |
 | `aws` | `aws-mcp` server | |
+| `rust` | Rust and lint-and-format rules, `review-rust` and `best-practices-rust` skills, `dev-rust` and `reviewer-rust` agents | |
 
 So `--sets next` installs core, js, web, react and next. Add `react` for React web code outside Next.js and Astro, since `reviewer-react` is the one that reviews it; `next` and `astro` bring it themselves.
 
@@ -67,6 +68,8 @@ $ bun scripts/install.ts ~/code/my-app
 Refusing to install; nothing was changed:
   a first install needs --sets, since each set's MCP servers start in every session; the project's package.json files suggest --sets core,js,web,react,next
 ```
+
+No `package.json` shows that a project needs `mobile` or `rust`, so name those yourself.
 
 ### What it writes
 
@@ -123,6 +126,7 @@ The dev agents implement a task, run the project's checks (format, lint, type-ch
 | React web code outside Next.js and Astro: single-page apps, component libraries | react | `dev-bun` | `reviewer-react` |
 | Next.js: App Router, server and client components, route handlers, server actions | next | `dev-next` | `reviewer-next` |
 | Astro: components, content collections, islands, SSR adapters | astro | `dev-astro` | `reviewer-astro` |
+| Rust: libraries, command-line tools, async services | rust | `dev-rust` | `reviewer-rust` |
 
 Ask for one by name and Claude delegates to it. To make sure it runs, @-mention it: type `@` and pick it from the list, or type `@agent-` and its name.
 
@@ -162,8 +166,9 @@ The agents preload the skills they need. You can also run one in your own sessio
 | `/develop-generic` | core | Implement a change the way the dev agents do |
 | `/best-practices-bun` | js | Check TypeScript for async waterfalls, caching and hot-path costs |
 | `/best-practices-react` | react | Check React and Next.js code against 28 performance rules |
+| `/best-practices-rust` | rust | Check Rust for blocking async code, unbuffered I/O, needless allocations and hot-path costs |
 
-`review-bun` and `review-react` add TypeScript and React checks to `review-generic`. They're meant for the reviewer agents rather than for running alone.
+`review-bun`, `review-react` and `review-rust` add TypeScript, React and Rust checks to `review-generic`. They're meant for the reviewer agents rather than for running alone.
 
 ```text
 /review-generic

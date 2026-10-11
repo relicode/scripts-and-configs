@@ -1,6 +1,6 @@
 ---
 name: best-practices-bun
-description: Performance practices for all TypeScript and JavaScript, since Bun is the toolchain everywhere. Covers async waterfalls, caching across requests, and hot-path techniques such as index maps, Set and Map lookups, hoisted regular expressions and toSorted. Use when writing or reviewing performance-sensitive TypeScript; preloaded by reviewer-bun, reviewer-react, reviewer-next, reviewer-astro and the dev agents, and the base that best-practices-react builds on.
+description: Performance practices for all TypeScript and JavaScript, since Bun is the toolchain everywhere. Covers async waterfalls, caching across requests, and hot-path techniques such as index maps, Set and Map lookups, hoisted regular expressions and toSorted. Use when writing or reviewing performance-sensitive TypeScript; preloaded by reviewer-bun, reviewer-react, reviewer-next, reviewer-astro, dev-bun, dev-next and dev-astro, and the base that best-practices-react builds on.
 license: MIT
 ---
 
