@@ -16,9 +16,9 @@ Bun is the toolchain for all TypeScript and JavaScript: it installs packages, ru
 - New tests use `bun test` with `bun:test` where the package's `test` script runs `bun test`. In a package on Jest, Vitest or Playwright, write them for that runner.
 - In code Bun executes, Bun loads `.env` files itself, so don't add `dotenv` there.
 
-## Executable scripts
+## Scripts
 
-Executable TypeScript and JavaScript scripts follow `.claude/rules/scripts.md`. Where Bun is the toolchain, they start with `#!/usr/bin/env bun`:
+TypeScript and JavaScript scripts follow `.claude/rules/scripts.md`. Where Bun is the toolchain, they start with `#!/usr/bin/env bun`:
 
 ```ts
 #!/usr/bin/env bun

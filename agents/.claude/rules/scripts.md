@@ -1,6 +1,6 @@
 # Scripts
 
-A script meant to be run as a command, by path or from `PATH`, in any language:
+A script, in any language, is a file that runs as a program of its own, whether by path, from `PATH`, or through its interpreter or a package script, such as `bun scripts/seed.ts`. CLI entry points are scripts; modules that are only ever imported, git hooks, and the entry point of a server or other long-running service aren't. A script:
 
 - Starts with a shebang for its interpreter, such as `#!/bin/sh`. Language rules can name the one to use.
 - Follows its language's rules even without a file extension, such as `bin/deploy`, though their `paths:` won't load them for it: read them yourself. Linters and type-checkers that pick files by extension skip it too, so keep its code in a module they check, or say it went unchecked.
