@@ -43,6 +43,8 @@ if (values.help) {
 
 A wrapper hands `parseArgs` only the arguments before the command it runs. Where Node runs the script instead, it starts with `#!/usr/bin/env node`, reads `process.argv` and is written in JavaScript, unless the project already runs TypeScript scripts another way, such as `tsx`: Node's own TypeScript support needs erasable syntax and `.ts` import paths, which `tsc` refuses by default.
 
+Where lint rejects a script's shebang, as eslint-plugin-n's recommended `n/hashbang` rule does outside `package.json` `bin` entries, leave out the shebang and the executable bit and say so instead of changing the config. On `bin` entries that rule wants `#!/usr/bin/env node`, so a script Bun runs keeps `#!/usr/bin/env bun` and its lint failure goes in your report. A `format` or `lint` script that runs `eslint --fix` strips or rewrites shebangs without a word, so check scripts' first lines after running one.
+
 ## APIs
 
 In new code that Bun executes, prefer Bun's built-ins to Node APIs and npm packages:
