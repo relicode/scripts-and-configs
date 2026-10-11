@@ -1,6 +1,6 @@
 # skillster
 
-A ready-made Claude Code setup for your projects: house rules, developer and reviewer agents, the skills behind them, and MCP servers for docs, desktop and mobile browsers, and AWS. One command installs it into a project, and it comes in language sets, so each project gets only what fits its stack.
+A ready-made Claude Code setup for your projects: house rules, developer and reviewer agents, the skills behind them, and MCP servers for library, framework and AWS docs and for desktop and mobile browsers. One command installs it into a project, and it comes in language sets, so each project gets only what fits its stack.
 
 ## Quick start
 
@@ -23,7 +23,7 @@ Then commit what it wrote in your project, start `claude` there, and approve the
 | Rules | Coding standards: clean code, scripts, TypeScript, Bun, lint and format, React | Loaded automatically, the language rules only for matching files |
 | Agents | Developers that implement a task, and reviewers that review and fix a change | Ask Claude to use one, or @-mention it |
 | Skills | The procedures and guides the agents follow | Preloaded by the agents, or run as `/name` |
-| MCP servers | Docs lookups, a headless Chrome, mobile browsers through Maestro, AWS | Claude calls them when a task needs them |
+| MCP servers | Lookups in library, framework and AWS docs, a headless Chrome, mobile browsers through Maestro | Claude calls them when a task needs them |
 
 ### Language sets
 
@@ -195,7 +195,7 @@ Claude uses them when a task calls for it, and naming one in your prompt steers 
 
 `next-devtools` reads a running dev server only on Next.js 16 or newer; its docs lookups need no dev server.
 
-`aws-mcp` uses your own AWS credentials, from `AWS_PROFILE` or else the `default` profile, with `AWS_REGION` (eu-west-1 unless set) as its default region. It runs read-only, which hides every tool AWS doesn't mark read-only. [`CLAUDE.md`](CLAUDE.md) explains how to lift that for yourself.
+`aws-mcp` signs its requests with your own AWS credentials, from `AWS_PROFILE` or else the `default` profile, and won't connect without that profile and valid credentials for it. It runs with `--read-only`, which hides every tool AWS doesn't mark read-only. That leaves its tools for AWS documentation, skills and regional availability; the ones that run scripts against AWS APIs or sign Amazon S3 URLs aren't marked read-only, so `aws-mcp` currently can't read or change anything in your account. [`CLAUDE.md`](CLAUDE.md) explains how to lift `--read-only` for yourself.
 
 ## Working on skillster
 
