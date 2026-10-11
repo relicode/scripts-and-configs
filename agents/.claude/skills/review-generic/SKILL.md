@@ -25,7 +25,7 @@ Check the change for:
 3. **Inconsistencies**: naming that breaks the language's or project's conventions; two patterns for the same job; error handling that differs within one module; anything that breaks the project's rules.
 4. **Repetition**: logic that belongs in a shared helper; copy-paste with small variations; repeated type definitions; near-identical functions one parameter could unify.
 5. **Bad practices**: loose types where real ones are feasible; swallowed errors or missing error handling; unawaited async work and race conditions; resource leaks (files, streams, subscriptions, child processes); magic numbers and strings; mutable or global state where immutability is expected.
-6. **Security**: injection (shell, SQL, path traversal through user-supplied paths); secrets in source, config or logs; missing validation at trust boundaries; `eval` and dynamically built code; error messages that leak paths, stack traces or environment.
+6. **Security**: injection (shell, SQL, XSS through untrusted data rendered as HTML, path traversal through user-supplied paths); SSRF through server-side requests to URLs built from user input; prompt injection through untrusted text in LLM prompts or tool results, and LLM output used unchecked in a shell, query or page; missing authorization checks; secrets in source, config or logs; missing validation at trust boundaries; `eval` and dynamically built code; error messages that leak paths, stack traces or environment.
 
 When the project has docs MCP servers, such as context7, astro-docs or mui-mcp, check library and framework API usage against them rather than from memory.
 

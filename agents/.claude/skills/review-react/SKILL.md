@@ -1,11 +1,19 @@
 ---
 name: review-react
-description: React and Next.js review specifics. Grades the best-practices-react performance rules on the review scale and says when a production build is worth running. Use together with review-generic, review-bun, best-practices-bun and best-practices-react when reviewing React web code; preloaded by reviewer-react, reviewer-next and reviewer-astro.
+description: React and Next.js review specifics. Checks for XSS through raw HTML, server actions and route handlers that trust their caller, and open redirects, grades the best-practices-react performance rules on the review scale and says when a production build is worth running. Use together with review-generic, review-bun, best-practices-bun and best-practices-react when reviewing React web code; preloaded by reviewer-react, reviewer-next and reviewer-astro.
 ---
 
 # Code review: React and Next.js
 
 Extends `review-generic` and builds on `review-bun`, whose TypeScript and performance checks apply to React code too: same scope, phases and report, plus the checks below. The project rule `.claude/rules/js/react.md` says how to apply the guide; validate the way `.claude/rules/js/lint-and-format.md` describes.
+
+## Security findings
+
+On top of review-generic's checks, these are **Security** findings:
+
+- `dangerouslySetInnerHTML`, or Astro's `set:html`, fed anything but trusted or sanitized HTML: XSS.
+- A server action, Astro action, route handler or endpoint that relies on the page, layout or middleware for its checks. Anyone can call it directly, so it authenticates and authorizes the caller and validates its input itself.
+- `redirect()` or a `Location` header whose target is user input, such as a `next` parameter, without an allowlist: an open redirect.
 
 ## Performance findings
 
