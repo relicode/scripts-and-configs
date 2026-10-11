@@ -33,13 +33,6 @@ Implementing a change means building what was asked in the project's own style, 
 - Failures in files you didn't change aren't yours to fix unless your change caused them: report them.
 - Finish with "Before saying you're done" in `.claude/rules/clean-code.md`.
 
-## Safety
-
-"Before saying you're done" in `.claude/rules/clean-code.md` says what's safe to run. It covers package scripts and one-off commands as well as the code you wrote, read this way:
-
-- Installing packages, the project's own or one the task asks for, doesn't count as contacting a real service.
-- Its "nothing that deletes" leaves out the files the task removes and what the project's own checks delete and recreate, such as `coverage/` or a test database. Everything else stays off limits, such as snapshots deleted to get a check passing, data like a dev database or uploads, files git doesn't track that you didn't create, and anything outside the working tree.
-
 ## Report
 
 Use this format, emoji markers included:
@@ -67,5 +60,6 @@ The reviewer is the one the task names, or else the one your agent instructions 
 
 ## Ground rules
 
+- Run the project's checks and scripts only when `.claude/rules/clean-code.md` says that's safe.
 - Never commit or push.
 - Never add Claude attribution.

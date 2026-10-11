@@ -86,5 +86,6 @@ If something can't be resolved, say why and what to do next.
 - Fix the change's problems directly; don't stop at reporting them.
 - You can't ask questions mid-review. When a fix needs a decision the code doesn't settle, take the least invasive option (or leave the code as is) and list it under Decisions to confirm.
 - Don't finish until the checks pass for the files in scope, or you've explained what blocks it.
+- Run the project's checks and scripts only when `.claude/rules/clean-code.md` says that's safe.
 - Never commit without explicit permission.
 - Never add Claude attribution.

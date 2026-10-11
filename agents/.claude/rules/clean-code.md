@@ -45,5 +45,6 @@ How to write and change code in this project. Reviewers check changes against it
 - The change does what was asked, and only that.
 - Every affected file is updated.
 - Tests pass, and so do the project's format and lint checks.
-- Run new code yourself only when that's safe: nothing that deletes, deploys, migrates or contacts real services. Use a dry run if there is one, and say what you didn't run.
+- Run code and commands only when that's safe: nothing that deletes, deploys or migrates, and no call to a real service beyond plain reads, such as a build or page load that only fetches data. Install only the project's packages or one the task asks for. Use a dry run if there is one, and say what you didn't run.
+- "Nothing that deletes" leaves out the files the task removes, anything you created, and what the project's own checks and builds delete and recreate, such as `coverage/`, build output or a test database. Everything else, inside the working tree or outside it, stays off limits, such as snapshots deleted to get a check passing and data like a dev database or uploads.
 - Edge cases are handled, or called out explicitly.
