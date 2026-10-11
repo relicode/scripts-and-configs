@@ -32,16 +32,16 @@ The core works for any language. Every other set adds a language, framework or p
 | Set | Adds | Builds on |
 | --- | --- | --- |
 | `core`, always installed | `clean-code` and `scripts` rules, `review-generic` and `develop-generic` skills, `reviewer` agent, `context7` server | |
-| `js` | TypeScript, Bun and lint-and-format rules, `review-bun` and `best-practices-bun` skills, `reviewer-b` and `dev-bun` agents | |
+| `js` | TypeScript, Bun and lint-and-format rules, `review-bun` and `best-practices-bun` skills, `dev-bun` and `reviewer-bun` agents | |
 | `web` | `chrome-devtools` server | `js` |
-| `react` | React rule, `review-react` and `best-practices-react` skills, `reviewer-r` agent | `web` |
-| `next` | `dev-next` agent, `next-devtools` server | `react` |
+| `react` | React rule, `review-react` and `best-practices-react` skills, `reviewer-react` agent | `web` |
+| `next` | `dev-next` and `reviewer-next` agents, `next-devtools` server | `react` |
 | `mui` | `mui-mcp` server | `react` |
-| `astro` | `dev-astro` agent, `astro-docs` server | `web` |
+| `astro` | `dev-astro` and `reviewer-astro` agents, `astro-docs` server | `react` |
 | `mobile` | `maestro` server | `js` |
 | `aws` | `aws-mcp` server | |
 
-So `--sets next` installs core, js, web, react and next. Add `react` wherever there's React web code, Astro islands included, since `reviewer-r` is the one that reviews it.
+So `--sets next` installs core, js, web, react and next. Add `react` for React web code outside Next.js and Astro, since `reviewer-react` is the one that reviews it; `next` and `astro` bring it themselves.
 
 ## Installing
 
@@ -73,7 +73,7 @@ Refusing to install; nothing was changed:
 ```text
 my-app/
 ├── .claude/
-│   ├── agents/                   dev-next.md, reviewer-r.md, …
+│   ├── agents/                   dev-next.md, reviewer-next.md, …
 │   ├── rules/                    clean-code.md, js/typescript.md, …
 │   ├── skills/                   review-generic/, best-practices-react/, …
 │   └── skillster-manifest.json   what was installed, and from which skillster commit
@@ -98,7 +98,7 @@ The installer is careful with your files:
 ### Updating and changing sets
 
 - **Update:** update your skillster checkout and run the install again. Without `--sets`, it keeps the sets of the last install, updates what changed and deletes what's no longer shipped.
-- **Change sets:** run it again with `--sets` naming every set you want, since the list replaces the last one rather than adding to it. On a `next` install, `--sets next,mui` adds MUI, while `--sets mui` would drop `next`, removing `dev-next` and `next-devtools`. Check with `--dry-run` first.
+- **Change sets:** run it again with `--sets` naming every set you want, since the list replaces the last one rather than adding to it. On a `next` install, `--sets next,mui` adds MUI, while `--sets mui` would drop `next`, removing `dev-next`, `reviewer-next` and `next-devtools`. Check with `--dry-run` first.
 - **Local edits:** a re-install refuses to overwrite or delete a file or MCP server entry you edited. Save your change elsewhere, then run it with `--force`.
 - **Uninstall:** there's no command for it. Delete the files that `.claude/skillster-manifest.json` lists, whose paths are relative to `.claude/`, and the MCP servers it lists from `.mcp.json`, then the manifest itself.
 
@@ -114,16 +114,15 @@ Nothing to do. `clean-code.md` and `scripts.md` load in every session, and the l
 
 ### Agents
 
-The dev agents implement a task, run the project's checks (format, lint, type-check and tests) and name the reviewer to run next. The reviewers review a change, fix what they find, run the checks and report.
+The dev agents implement a task, run the project's checks (format, lint, type-check and tests) and name the reviewer to run next. The reviewers review a change, fix what they find, run the checks and report. Each agent is named for its role and stack, so `dev-next` hands its changes to `reviewer-next`:
 
-| Agent | Set | For |
-| --- | --- | --- |
-| `dev-bun` | js | TypeScript that isn't Next.js or Astro: scripts, CLIs, Ink UIs, `Bun.serve` servers, libraries, `bun test` suites |
-| `dev-next` | next | Next.js: App Router, server and client components, route handlers, server actions |
-| `dev-astro` | astro | Astro: components, content collections, islands, SSR adapters |
-| `reviewer` | core | Any language without a more specific reviewer |
-| `reviewer-b` | js | TypeScript and JavaScript, Astro components |
-| `reviewer-r` | react | React and Next.js web code, performance included |
+| Stack | Set | Implements | Reviews |
+| --- | --- | --- | --- |
+| Code no other reviewer covers, in any language | core | | `reviewer` |
+| TypeScript and JavaScript: scripts, CLIs, Ink UIs, `Bun.serve` servers, libraries, `bun test` suites, React Native and Expo apps | js | `dev-bun` | `reviewer-bun` |
+| React web code outside Next.js and Astro: single-page apps, component libraries | react | `dev-bun` | `reviewer-react` |
+| Next.js: App Router, server and client components, route handlers, server actions | next | `dev-next` | `reviewer-next` |
+| Astro: components, content collections, islands, SSR adapters | astro | `dev-astro` | `reviewer-astro` |
 
 Ask for one by name and Claude delegates to it. To make sure it runs, @-mention it: type `@` and pick it from the list, or type `@agent-` and its name.
 
@@ -132,15 +131,15 @@ Use dev-bun to add a --json flag to scripts/report.ts that prints the report as 
 ```
 
 ```text
-Use dev-next to add an /api/health route that returns the app version, then have reviewer-r review the change.
+Use dev-next to add an /api/health route that returns the app version, then have reviewer-next review the change.
 ```
 
 ```text
-@agent-reviewer-b review my uncommitted changes
+@agent-reviewer-bun review my uncommitted changes
 ```
 
 ```text
-@agent-reviewer-r review the search box I just added to components/product-list.tsx. The list re-renders on every keystroke.
+@agent-reviewer-react review the search box I just added to packages/ui/src/product-list.tsx. The list re-renders on every keystroke.
 ```
 
 The reviewers' descriptions also tell Claude to run one by itself after it finishes a chunk of code.
@@ -164,7 +163,7 @@ The agents preload the skills they need. You can also run one in your own sessio
 | `/best-practices-bun` | js | Check TypeScript for async waterfalls, caching and hot-path costs |
 | `/best-practices-react` | react | Check React and Next.js code against 28 performance rules |
 
-`review-bun` and `review-react` add TypeScript and React checks to `review-generic`. They're meant for `reviewer-b` and `reviewer-r` rather than for running alone.
+`review-bun` and `review-react` add TypeScript and React checks to `review-generic`. They're meant for the reviewer agents rather than for running alone.
 
 ```text
 /review-generic

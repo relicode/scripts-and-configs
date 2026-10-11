@@ -1,6 +1,6 @@
 ---
 name: review-bun
-description: TypeScript and Bun review specifics for all TypeScript and JavaScript, since Bun is the toolchain everywhere. Checks the change against the project's TypeScript and Bun rules and the best-practices-bun performance rules, and for shell and argument injection through Bun.spawn and Bun shell, child-process leaks and Ink pitfalls. Use together with review-generic and best-practices-bun when reviewing TypeScript; preloaded by reviewer-b and reviewer-r.
+description: TypeScript and Bun review specifics for all TypeScript and JavaScript, since Bun is the toolchain everywhere. Checks the change against the project's TypeScript and Bun rules and the best-practices-bun performance rules, and for shell and argument injection through Bun.spawn and Bun shell, child-process leaks and Ink pitfalls. Use together with review-generic and best-practices-bun when reviewing TypeScript; preloaded by reviewer-bun, reviewer-react, reviewer-next and reviewer-astro.
 ---
 
 # Code review: TypeScript and Bun

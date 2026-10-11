@@ -59,7 +59,7 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
   js: {
     rules: ['js/typescript.md', 'js/lint-and-format.md', 'js/bun.md'],
     skills: ['review-bun', 'best-practices-bun'],
-    agents: ['reviewer-b', 'dev-bun'],
+    agents: ['dev-bun', 'reviewer-bun'],
     mcpServers: [],
     requires: [],
   },
@@ -71,21 +71,20 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     mcpServers: ['chrome-devtools'],
     requires: ['js'],
   },
-  // React code runs in the browser, so React brings web, and with it the JS/TS set that reviewer-r's
+  // React code runs in the browser, so React brings web, and with it the JS/TS set that reviewer-react's
   // preloaded review-bun and best-practices-bun come from.
   react: {
     rules: ['js/react.md'],
     skills: ['review-react', 'best-practices-react'],
-    agents: ['reviewer-r'],
+    agents: ['reviewer-react'],
     mcpServers: [],
     requires: ['web'],
   },
-  // dev-next preloads best-practices-react and hands its changes to reviewer-r, so Next.js never ships
-  // without React.
+  // dev-next and reviewer-next preload the React skills, so Next.js never ships without React.
   next: {
     rules: [],
     skills: [],
-    agents: ['dev-next'],
+    agents: ['dev-next', 'reviewer-next'],
     mcpServers: ['next-devtools'],
     requires: ['react'],
   },
@@ -97,14 +96,14 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
     mcpServers: ['mui-mcp'],
     requires: ['react'],
   },
-  // Astro pages run in the browser, so Astro brings web, and with it the JS/TS set: dev-astro preloads
-  // best-practices-bun, and the js rules cover .astro files.
+  // reviewer-astro preloads the React skills for React islands, so Astro brings React, and with it web and
+  // the JS/TS set, whose rules cover .astro files.
   astro: {
     rules: [],
     skills: [],
-    agents: ['dev-astro'],
+    agents: ['dev-astro', 'reviewer-astro'],
     mcpServers: ['astro-docs'],
-    requires: ['web'],
+    requires: ['react'],
   },
   // Expo and React Native apps, whose JS/TS the js rules cover. maestro is the Maestro CLI's own
   // server, so its version is whatever the developer installed.

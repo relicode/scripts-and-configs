@@ -17,17 +17,17 @@ Everything else (`CLAUDE.md`, `package.json`, configs, `scripts/`, `src/`) belon
 
 ## Language sets
 
-The core works for any language. Each other set adds one language, framework or platform and can be dropped or swapped: a Kotlin project keeps the core, drops `js` and the sets built on it, and adds `rules/kotlin/`, `review-kotlin`, `reviewer-k` and `dev-kotlin`.
+The core works for any language. Each other set adds one language, framework or platform and can be dropped or swapped: a Kotlin project keeps the core, drops `js` and the sets built on it, and adds `rules/kotlin/`, `review-kotlin`, `reviewer-kotlin` and `dev-kotlin`.
 
 | Set | Rules | Skills | Agents | MCP servers |
 | --- | --- | --- | --- | --- |
 | Core (`core`) | `clean-code.md`, `scripts.md` | `review-generic`, `develop-generic` | `reviewer` | `context7` |
-| JS/TS and Bun (`js`) | `js/typescript.md`, `js/lint-and-format.md`, `js/bun.md` | `review-bun`, `best-practices-bun` | `reviewer-b`, `dev-bun` | — |
+| JS/TS and Bun (`js`) | `js/typescript.md`, `js/lint-and-format.md`, `js/bun.md` | `review-bun`, `best-practices-bun` | `dev-bun`, `reviewer-bun` | — |
 | Web (`web`, needs `js`) | — | — | — | `chrome-devtools` |
-| React (`react`, needs `web`) | `js/react.md` | `review-react`, `best-practices-react` | `reviewer-r` | — |
-| Next.js (`next`, needs `react`) | — | — | `dev-next` | `next-devtools` |
+| React (`react`, needs `web`) | `js/react.md` | `review-react`, `best-practices-react` | `reviewer-react` | — |
+| Next.js (`next`, needs `react`) | — | — | `dev-next`, `reviewer-next` | `next-devtools` |
 | MUI (`mui`, needs `react`) | — | — | — | `mui-mcp` |
-| Astro (`astro`, needs `web`) | — | — | `dev-astro` | `astro-docs` |
+| Astro (`astro`, needs `react`) | — | — | `dev-astro`, `reviewer-astro` | `astro-docs` |
 | Expo and React Native (`mobile`, needs `js`) | — | — | — | `maestro` |
 | AWS (`aws`) | — | — | — | `aws-mcp` |
 
@@ -46,7 +46,7 @@ context7, astro-docs, mui-mcp and next-devtools look up library and framework do
 
 ## Naming
 
-- Skills get descriptive names in one pattern, what they do and then what they cover (`review-generic`, `develop-generic`, `review-bun`, `best-practices-react`); agents get short ones that are quick to type (`reviewer`, `reviewer-b`, `dev-bun`, `dev-next`).
+- Skills get descriptive names in one pattern, what they do and then what they cover (`review-generic`, `develop-generic`, `review-bun`, `best-practices-react`); agents get short ones, their role and then their stack, so each dev agent shares its stack name with its reviewer (`dev-bun` and `reviewer-bun`, `dev-next` and `reviewer-next`), and the generic reviewer is plain `reviewer`.
 - Don't reuse built-in or bundled names such as `review`, `init`, `run`, `simplify` or `code-review`: a project skill replaces them.
 - A personal skill in `~/.claude/skills` silently overrides a project skill with the same name. For agents it's the other way round.
 
@@ -55,7 +55,7 @@ context7, astro-docs, mui-mcp and next-devtools look up library and framework do
 Run `bun scripts/install.ts <target> [--dry-run] [--sets core,js,web,react,next,mui,astro,mobile,aws] [--force]` from a clean commit of this repo: the manifest records `HEAD`, and the installer warns about uncommitted changes to the copy set or `.mcp.json`. It has no package script on purpose: one named `install` would run on every `bun install`.
 
 - The target must be a git repository root that isn't skillster, a clone of it or your home folder. That serves a monorepo's packages too: a session started in a package reads the `.claude/` agents, skills and rules and the `.mcp.json` of every folder up to the root, while a session at the root never sees a package's.
-- Without `--sets`, a re-install keeps the sets of the last one. A first install refuses without `--sets`, since every set's MCP servers would start in each session, and suggests a value from the project's `package.json` files, workspaces included. A manifest whose sets skillster doesn't know needs `--sets`. `core` is always included, and each set brings the ones it needs: `react` and `astro` bring `web`, which brings `js`; `next` and `mui` bring `react`; `mobile` brings `js`. Add `react` wherever there's React web code, Astro islands included, since reviewer-r reviews it. The installer names any set those `package.json` files suggest but the install leaves out: any `package.json` suggests `js`, `react-dom` suggests `react`, `@mui/material` `mui`, `expo` or `react-native` `mobile`, `aws-cdk-lib` or an `@aws-sdk/` package `aws`, and `next` and `astro` their own.
+- Without `--sets`, a re-install keeps the sets of the last one. A first install refuses without `--sets`, since every set's MCP servers would start in each session, and suggests a value from the project's `package.json` files, workspaces included. A manifest whose sets skillster doesn't know needs `--sets`. `core` is always included, and each set brings the ones it needs: `react` brings `web`, which brings `js`; `next`, `mui` and `astro` bring `react`; `mobile` brings `js`. Add `react` for React web code outside Next.js and Astro, which reviewer-react reviews; `next` and `astro` bring it themselves. The installer names any set those `package.json` files suggest but the install leaves out: any `package.json` suggests `js`, `react-dom` suggests `react`, `@mui/material` `mui`, `expo` or `react-native` `mobile`, `aws-cdk-lib` or an `@aws-sdk/` package `aws`, and `next` and `astro` their own.
 - Files are copied, never symlinked, and never written through a symlink: rules reached through a symlink need approval, and the scoped ones don't load at all.
 - Nothing is written until every check passes. The installer refuses when a file it would write holds other content and isn't in its manifest, or when an agent, skill or top-level command elsewhere in the target's `.claude/` uses one of our names: duplicate agent names resolve arbitrarily, and a skill hides a command. A file that's already identical is adopted. It warns when `~/.claude/skills` has a skill with one of our names, since that one would win.
 - `.claude/skillster-manifest.json` in the target records this repo's commit, the sets, a sha256 per installed file and one per installed MCP server. Re-installing deletes files that are no longer shipped, and refuses to overwrite or delete a locally edited one unless `--force` is given. After an interrupted install, re-run from the same commit with the `--sets` the installer prints: files and servers that landed are adopted, and a file cut off mid-write is refused until you delete it.

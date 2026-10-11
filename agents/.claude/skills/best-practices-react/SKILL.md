@@ -1,6 +1,6 @@
 ---
 name: best-practices-react
-description: React and Next.js performance guide with 28 rules on Suspense, bundle size, server components, client data fetching, re-renders, rendering and browser APIs. Builds on best-practices-bun, which holds the framework-neutral rules such as async waterfalls and hot-path JavaScript. Use when optimizing React apps, reviewing their performance, or refactoring components; preloaded by reviewer-r and dev-next.
+description: React and Next.js performance guide with 28 rules on Suspense, bundle size, server components, client data fetching, re-renders, rendering and browser APIs. Builds on best-practices-bun, which holds the framework-neutral rules such as async waterfalls and hot-path JavaScript. Use when optimizing React apps, reviewing their performance, or refactoring components; preloaded by reviewer-react, reviewer-next, reviewer-astro and dev-next.
 license: MIT
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: review-react
-description: React and Next.js review specifics. Grades the best-practices-react performance rules on the review scale and says when a production build is worth running. Use together with review-generic, review-bun, best-practices-bun and best-practices-react when reviewing React web code; preloaded by reviewer-r.
+description: React and Next.js review specifics. Grades the best-practices-react performance rules on the review scale and says when a production build is worth running. Use together with review-generic, review-bun, best-practices-bun and best-practices-react when reviewing React web code; preloaded by reviewer-react, reviewer-next and reviewer-astro.
 ---
 
 # Code review: React and Next.js
