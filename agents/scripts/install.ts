@@ -358,16 +358,13 @@ const readOptions = (args: string[]) => {
   }
 }
 
+// skillster can sit in a subfolder of a bigger repository, whose commit the manifest then records.
 const checkSource = async () => {
   const toplevel = await runGit(SOURCE_ROOT, ['rev-parse', '--show-toplevel'])
   if (!toplevel.isOk) return [`skillster at ${SOURCE_ROOT} isn't usable as a git working tree: ${toplevel.error}`]
-  const [root, sourceRoot, head] = await Promise.all([
-    realpath(toplevel.output),
-    realpath(SOURCE_ROOT),
-    runGit(SOURCE_ROOT, ['rev-parse', '--verify', '--quiet', 'HEAD']),
-  ])
-  if (root === sourceRoot && head.isOk) return []
-  return [`skillster has to run from its own git repository with at least one commit, which ${SOURCE_ROOT} isn't`]
+  const head = await runGit(SOURCE_ROOT, ['rev-parse', '--verify', '--quiet', 'HEAD'])
+  if (head.isOk) return []
+  return [`skillster has to run from a git repository with at least one commit, which ${toplevel.output} isn't`]
 }
 
 // Related repositories share history: a root commit of either one exists in the other. That
@@ -400,7 +397,7 @@ const checkTarget = async (target: string) => {
     return [`${target} isn't the root of its repository (${root} is); agents in a subfolder aren't found from the root`]
   }
   if (await isUserSetup(root)) return [`${target} would install into ${USER_CLAUDE_LABEL}, your user-level setup`]
-  return (await isSkillster(target)) ? [`${target} is a checkout of skillster itself`] : []
+  return (await isSkillster(target)) ? [`${target} is a checkout of skillster's own repository`] : []
 }
 
 const checkSourceAndTarget = async (target: string) => {

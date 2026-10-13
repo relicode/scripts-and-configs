@@ -4,7 +4,7 @@ A ready-made Claude Code setup for your projects: house rules, developer and rev
 
 ## Quick start
 
-From the root of a skillster checkout, with [Bun](https://bun.com) 1.4 or newer:
+From `agents/` in a scripts-and-configs checkout, with [Bun](https://bun.com) 1.4 or newer:
 
 ```sh
 # Preview what would be installed, then install
@@ -100,7 +100,7 @@ The installer is careful with your files:
 
 ### Updating and changing sets
 
-- **Update:** update your skillster checkout and run the install again. Without `--sets`, it keeps the sets of the last install, updates what changed and deletes what's no longer shipped.
+- **Update:** update your scripts-and-configs checkout and run the install again. Without `--sets`, it keeps the sets of the last install, updates what changed and deletes what's no longer shipped.
 - **Change sets:** run it again with `--sets` naming every set you want, since the list replaces the last one rather than adding to it. On a `next` install, `--sets next,mui` adds MUI, while `--sets mui` would drop `next`, removing `dev-next`, `reviewer-next` and `next-devtools`. Check with `--dry-run` first.
 - **Local edits:** a re-install refuses to overwrite or delete a file or MCP server entry you edited. Save your change elsewhere, then run it with `--force`.
 - **Uninstall:** there's no command for it. Delete the files that `.claude/skillster-manifest.json` lists, whose paths are relative to `.claude/`, and the MCP servers it lists from `.mcp.json`, then the manifest itself.
@@ -210,7 +210,7 @@ bun run format
 bun run lint    # Biome, tsc, and lint:claude, which checks the copy set and .mcp.json
 ```
 
-[`CLAUDE.md`](CLAUDE.md) is the reference for this repo: what ships, where a new rule, skill, agent or MCP server goes, how `scripts/copy-set.ts` wires them into sets, and the installer's behavior in detail. Test agents and skills on throwaway copies outside the repo, since the reviewers edit what they review.
+[`CLAUDE.md`](CLAUDE.md) is the reference for skillster: what ships, where a new rule, skill, agent or MCP server goes, how `scripts/copy-set.ts` wires them into sets, and the installer's behavior in detail. Test agents and skills on throwaway copies outside the repo, since the reviewers edit what they review.
 
 ## Credits
 
