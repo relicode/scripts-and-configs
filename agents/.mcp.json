@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "context7": { "type": "http", "url": "https://mcp.context7.com/mcp" },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["chrome-devtools-mcp@1.10.1", "--headless", "--isolated"]
+    },
+    "next-devtools": { "type": "stdio", "command": "bunx", "args": ["next-devtools-mcp@0.4.0"] },
+    "mui-mcp": { "type": "stdio", "command": "bunx", "args": ["@mui/mcp@0.1.7"] },
+    "astro-docs": { "type": "http", "url": "https://mcp.docs.astro.build/mcp" },
+    "maestro": { "type": "stdio", "command": "maestro", "args": ["mcp"] },
+    "aws-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-proxy-for-aws-cli==1.7.0",
+        "${AWS_MCP_ENDPOINT:-https://aws-mcp.eu-central-1.api.aws/mcp}",
+        "--metadata",
+        "AWS_REGION=${AWS_REGION:-eu-west-1}",
+        "--read-only",
+        "--skip-auth"
+      ]
+    }
+  }
+}
