@@ -17,5 +17,5 @@
     "isolatedModules": true,
     "types": ["bun"]
   },
-  "include": ["src/**/*", "__tests__/**/*", "scripts/**/*"]
+  "include": ["scripts/**/*"]
 }

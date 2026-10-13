@@ -3,5 +3,5 @@
   "name": "jsonc-fixture",
   /* and block comments */
   "version": "1.0.0",
-  "tags": ["a", "b"],
+  "tags": ["a", "b"]
 }

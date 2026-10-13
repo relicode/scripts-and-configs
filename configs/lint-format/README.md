@@ -7,23 +7,26 @@ A reusable lint/format stub for Bun + TypeScript projects. Copy this directory i
 
 ```sh
 bun install
-bun run lint     # eslint + prettier --check + tsc --noEmit (concurrent)
-bun run format   # eslint --fix, then prettier --write (sequential)
+bun run lint     # biome check + eslint + prettier --check + tsc --noEmit (concurrent)
+bun run format   # biome check --write, then eslint --fix, then prettier --write (sequential)
 bun test         # bun's built-in test runner
 ```
 
 ## What's covered
 
-| Tool       | Handles                                                                   |
-| ---------- | ------------------------------------------------------------------------- |
-| ESLint     | `.{js,mjs,cjs,jsx,ts,mts,cts,tsx}`, JSON / JSONC / JSON5, Markdown, CSS   |
-| Prettier   | All of the above plus `.yaml` / `.yml`                                    |
-| TypeScript | All `.ts*` files plus `.js*` (via `allowJs`, no type-checking by default) |
+| Tool       | Handles                                                                            |
+| ---------- | ---------------------------------------------------------------------------------- |
+| Biome      | `.{js,mjs,cjs,jsx,ts,mts,cts,tsx}` + JSON / JSONC (formatter, linter, import sort) |
+| ESLint     | `.{js,mjs,cjs,jsx,ts,mts,cts,tsx}`, JSON / JSONC / JSON5, Markdown, CSS            |
+| Prettier   | All of the above plus `.yaml` / `.yml`                                             |
+| TypeScript | All `.ts*` files plus `.js*` (via `allowJs`, no type-checking by default)          |
 
 ## Files
 
-- `eslint.config.js` — flat config. React rules via `@eslint-react/eslint-plugin` (scoped to `.jsx`/`.tsx`); import
-  sorting via `eslint-plugin-simple-import-sort`.
+- `biome.jsonc` — formatter + linter + assist (`organizeImports` for JS/TS). JSONC because the file uses `//` comments
+  to flag the React-only setting; Biome auto-discovers both `biome.json` and `biome.jsonc`.
+- `eslint.config.js` — flat config. React rules via `@eslint-react/eslint-plugin` (scoped to `.jsx`/`.tsx`) plus
+  `eslint-plugin-react-hooks` v7 (`configs.flat.recommended`); import sorting via `eslint-plugin-simple-import-sort`.
 - `prettier.config.mjs` — `singleQuote`, `semi: false`, `trailingComma: 'es5'`, `printWidth: 120`.
 - `tsconfig.json` — `strict`, `target: es2025`, `module: es2022`, `lib: ['es2025', 'dom']`, `noEmit`.
 - `.prettierignore` — skips `node_modules`, `dist`, and helm chart paths (`charts/`, `templates/`, `Chart.yaml`,
@@ -34,23 +37,25 @@ bun test         # bun's built-in test runner
 
 ## Scripts
 
-| Script            | What it runs                                           |
-| ----------------- | ------------------------------------------------------ |
-| `lint`            | All `lint:*` scripts concurrently                      |
-| `lint:eslint`     | `eslint`                                               |
-| `lint:prettier`   | `prettier --check`                                     |
-| `lint:typescript` | `tsc --noEmit`                                         |
-| `format`          | `format:*` scripts sequentially (`eslint --fix` first) |
-| `format:eslint`   | `eslint --fix`                                         |
-| `format:prettier` | `prettier --write`                                     |
+| Script            | What it runs                                                              |
+| ----------------- | ------------------------------------------------------------------------- |
+| `lint`            | All `lint:*` scripts concurrently                                         |
+| `lint:biome`      | `biome check` (format + lint + assist, no writes)                         |
+| `lint:eslint`     | `eslint`                                                                  |
+| `lint:prettier`   | `prettier --check`                                                        |
+| `lint:typescript` | `tsc --noEmit`                                                            |
+| `format`          | `format:*` scripts sequentially (Biome first, then ESLint, then Prettier) |
+| `format:biome`    | `biome check --write`                                                     |
+| `format:eslint`   | `eslint --fix`                                                            |
+| `format:prettier` | `prettier --write`                                                        |
 
-`format` runs sequentially because `eslint --fix` may rewrite code (e.g. reorder imports) and prettier should see the
-final shape. `lint` runs concurrently for speed.
+`format` runs sequentially because each pass may rewrite code (e.g. Biome's assist reorders imports, `eslint --fix`
+re-applies its own ordering, Prettier finalises whitespace). `lint` runs concurrently for speed.
 
 ## Customizing
 
-- **No React?** Drop the `eslintReact.configs.recommended` block from `eslint.config.js` and remove
-  `@eslint-react/eslint-plugin` from `devDependencies`.
+- **No React?** Files with `// React-only` markers (`biome.jsonc`, `eslint.config.js`) call out the React-specific
+  lines; drop them and remove `@eslint-react/eslint-plugin` + `eslint-plugin-react-hooks` from `devDependencies`.
 - **No DOM?** Set `lib: ["es2025"]` in `tsconfig.json` and drop `globals.browser` from `eslint.config.js`.
 - **Helm / vendored trees?** The top-level `ignores` block in `eslint.config.js` already skips `**/charts/**`,
   `**/templates/**`, `submodules/**`, `dist/**`. Add more there as needed.

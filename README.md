@@ -1,4 +1,4 @@
-# Scripts and configs - version 1.1.1
+# Scripts and configs - version 1.2.0
 
 ## Installation:
 
