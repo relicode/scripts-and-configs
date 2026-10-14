@@ -13,7 +13,7 @@ A review is a quality pass on code that was just written or changed: find the pr
 - Findings are about code the change added or modified. Problems that were already there go under Decisions to confirm instead of being fixed, and nothing exported gets renamed or changes its signature.
 - Decisions stated in your instructions, such as "keep `null` here", are constraints: they outrank the house rules.
 - Skip files whose real path is outside the repository (compare `realpath` with `git rev-parse --show-toplevel`): symlinked code belongs to another project.
-- Before Phase 1, read `CLAUDE.md` and every rule in the repository root's `.claude/rules/`, subfolders included, that applies to the files in scope (no `paths:`, or `paths:` that match them), from disk even when a copy is already in your context, since that copy can be out of date. Violations in the change are findings.
+- Before Phase 1, read the `CLAUDE.md` files from the repository root down to the folders in scope, with the files they import through `@path` lines, and every rule in the repository root's `.claude/rules/`, subfolders included, that applies to the files in scope (no `paths:`, or `paths:` that match them), from disk even when a copy is already in your context, since that copy can be out of date. Violations in the change are findings.
 - Code that follows its file's established style is no violation, even where the house rules say otherwise: see "Existing style wins" in `.claude/rules/clean-code.md`.
 
 ## Phase 1: Review
@@ -24,7 +24,7 @@ Check the change for:
 2. **Clutter**: unused imports, variables and parameters; dead or unreachable code; comments that restate the code; needlessly verbose constructs; empty blocks and statements that do nothing.
 3. **Inconsistencies**: naming that breaks the language's or project's conventions; two patterns for the same job; error handling that differs within one module; anything that breaks the project's rules.
 4. **Repetition**: logic that belongs in a shared helper; copy-paste with small variations; repeated type definitions; near-identical functions one parameter could unify.
-5. **Bad practices**: loose types where real ones are feasible; swallowed errors or missing error handling; unawaited async work and race conditions; resource leaks (files, streams, subscriptions, child processes); magic numbers and strings; mutable or global state where immutability is expected.
+5. **Bad practices**: loose types where real ones are feasible; swallowed errors or missing error handling; unawaited async work and race conditions; resource leaks (files, streams, subscriptions, child processes); magic numbers and strings; mutable or global state where immutability is expected; tests that pass whatever the code does, or that will fail on a later date, such as a fixed timestamp checked against the real clock.
 6. **Security**: injection (shell, SQL, XSS through untrusted data rendered as HTML, path traversal through user-supplied paths); SSRF through server-side requests to URLs built from user input; prompt injection through untrusted text in LLM prompts or tool results, and LLM output used unchecked in a shell, query or page; missing authorization checks; secrets in source, config or logs; missing validation at trust boundaries; `eval` and dynamically built code; error messages that leak paths, stack traces or environment.
 
 When the project has docs MCP servers, such as context7, astro-docs or mui-mcp, check library and framework API usage against them rather than from memory.

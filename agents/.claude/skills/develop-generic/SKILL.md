@@ -16,14 +16,14 @@ Implementing a change means building what was asked in the project's own style, 
 
 ## Before editing
 
-- Read `CLAUDE.md` and every rule in the repository root's `.claude/rules/`, subfolders included, that applies to the files you'll change or create (no `paths:`, or `paths:` that match them). Read them from disk even when a copy is already in your context, since that copy can be out of date.
+- Read the `CLAUDE.md` files from the repository root down to the folders you'll work in, with the files they import through `@path` lines, and every rule in the repository root's `.claude/rules/`, subfolders included, that applies to the files you'll change or create (no `paths:`, or `paths:` that match them). Read them from disk even when a copy is already in your context, since that copy can be out of date.
 - Go through "Before editing a file" in `.claude/rules/clean-code.md` for each file you'll change.
 
 ## Implementing
 
 - Follow the established style the way "Existing style wins" in `.claude/rules/clean-code.md` describes.
 - When the project has docs MCP servers, such as context7, astro-docs or mui-mcp, look up library and framework APIs there rather than from memory.
-- Add or update tests for the change where the project has tests, with its runner and layout. If it has none, say so instead of setting them up.
+- Add or update tests for the change where the project has tests, with its runner and layout. If it has none, say so instead of setting them up. A test you add for a bug fix has to fail without the fix: undo the fix, run the test and see it fail, then restore the fix.
 - Apply the preloaded best-practices skills to the code they cover. When the reviewer you'll name preloads a best-practices skill you don't have (its `skills:` in `.claude/agents/`), read that skill's `SKILL.md` and apply it too: the reviewer checks your change against it.
 
 ## Validating

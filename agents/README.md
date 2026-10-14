@@ -20,7 +20,7 @@ Then commit what it wrote in your project, start `claude` there, and approve the
 
 | | What it is | How it's used |
 | --- | --- | --- |
-| Rules | Coding standards: clean code, scripts, shell commands, TypeScript, Bun, lint and format, React, Rust | Loaded automatically, the language rules only for matching files |
+| Rules | Coding standards: clean code, scripts, shell commands, TypeScript, Bun, lint and format, React, MUI, Rust | Loaded automatically, the language rules only for matching files |
 | Agents | Developers that implement a task, and reviewers that review and fix a change | Ask Claude to use one, or @-mention it |
 | Skills | The procedures and guides the agents follow | Preloaded by the agents, or run as `/name` |
 | MCP servers | Lookups in library, framework and AWS docs, a headless Chrome, mobile browsers through Maestro | Claude calls them when a task needs them |
@@ -36,7 +36,7 @@ The core works for any language. Every other set adds a language, framework or p
 | `web` | `chrome-devtools` server | `js` |
 | `react` | React rule, `review-react` and `best-practices-react` skills, `reviewer-react` agent | `web` |
 | `next` | `dev-next` and `reviewer-next` agents, `next-devtools` server | `react` |
-| `mui` | `mui-mcp` server | `react` |
+| `mui` | MUI rule, `mui-mcp` server | `react` |
 | `astro` | `dev-astro` and `reviewer-astro` agents, `astro-docs` server | `react` |
 | `mobile` | `maestro` server, for end-to-end tests on mobile browsers | `web` |
 | `aws` | `aws-mcp` server | |
@@ -152,6 +152,7 @@ Good to know:
 
 - Agents run in the background while you keep working, and `/tasks` lists them. They edit files, so run one at a time on the same files, and don't edit those files yourself while it runs.
 - Tell them about deliberate exceptions to the rules, such as "keep returning null here, the API client expects it". Otherwise a reviewer may "fix" it.
+- In a monorepo, the agents read the `CLAUDE.md` files from the root down to the code they work on, so a package's own `CLAUDE.md` reaches them.
 - With no files named, a reviewer reviews your uncommitted changes and the commits your branch adds. It fixes problems in what the change added or modified, and lists older ones for you to decide on.
 - They leave committing to you: look over the diff and commit it yourself.
 - For a report-only review of a pull request, use Claude Code's bundled `/code-review` skill instead.

@@ -90,7 +90,7 @@ export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
   },
   // MUI is a React component library.
   mui: {
-    rules: [],
+    rules: ['js/mui.md'],
     skills: [],
     agents: [],
     mcpServers: ['mui-mcp'],
