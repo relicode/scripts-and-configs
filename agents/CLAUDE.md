@@ -26,7 +26,7 @@ The core works for any language. Each other set adds one language, framework or 
 | Web (`web`, needs `js`) | — | — | — | `chrome-devtools` |
 | React (`react`, needs `web`) | `js/react.md` | `review-react`, `best-practices-react` | `reviewer-react` | — |
 | Next.js (`next`, needs `react`) | — | — | `dev-next`, `reviewer-next` | `next-devtools` |
-| MUI (`mui`, needs `react`) | — | — | — | `mui-mcp` |
+| MUI (`mui`, needs `react`) | `js/mui.md` | — | — | `mui-mcp` |
 | Astro (`astro`, needs `react`) | — | — | `dev-astro`, `reviewer-astro` | `astro-docs` |
 | Mobile browsers (`mobile`, needs `web`) | — | — | — | `maestro` |
 | AWS (`aws`) | — | — | — | `aws-mcp` |
