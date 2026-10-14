@@ -152,6 +152,7 @@ Good to know:
 
 - Agents run in the background while you keep working, and `/tasks` lists them. They edit files, so run one at a time on the same files, and don't edit those files yourself while it runs.
 - Tell them about deliberate exceptions to the rules, such as "keep returning null here, the API client expects it". Otherwise a reviewer may "fix" it.
+- In a monorepo, the agents read the `CLAUDE.md` files from the root down to the code they work on, so a package's own `CLAUDE.md` reaches them.
 - With no files named, a reviewer reviews your uncommitted changes and the commits your branch adds. It fixes problems in what the change added or modified, and lists older ones for you to decide on.
 - They leave committing to you: look over the diff and commit it yourself.
 - For a report-only review of a pull request, use Claude Code's bundled `/code-review` skill instead.
