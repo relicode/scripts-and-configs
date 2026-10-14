@@ -12,6 +12,7 @@ How to write and change code in this project. Reviewers check changes against it
 
 - Give each function, module and component one responsibility.
 - Build the simplest thing that works. Don't add features, options or abstractions for needs that don't exist yet.
+- When code stops being used, delete it instead of keeping it for later, or wiring it up just to keep it: code that never runs is never verified.
 - Extract duplicated logic once a second copy appears; one-liners stay inline.
 - When requirements are unclear, ask instead of guessing.
 - Leave the lines you change cleaner than you found them. Don't rewrite code the task doesn't touch.
@@ -27,7 +28,7 @@ How to write and change code in this project. Reviewers check changes against it
 - Keep functions small and at one level of abstraction: aim for 5–20 lines and at most 3 parameters.
 - Don't mutate inputs or hide side effects.
 - Prefer guard clauses and early returns to nesting; stay within 2 levels.
-- Prefer immutable data. No global or top-level mutable state; framework singletons such as an app, router or logger are fine.
+- Prefer immutable data. No global or top-level mutable state; framework singletons such as an app, router or logger are fine, and so is a cache of values that never change once computed, such as a memoized pure function or a lazily loaded module.
 - Write asynchronous code in the language's direct style (`async`/`await`, coroutines), not callback chains.
 - Keep related code together: no factories for two objects, and no utils file for a single function.
 
