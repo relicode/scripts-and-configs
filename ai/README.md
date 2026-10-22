@@ -114,7 +114,7 @@ The agents preload what they need. You can also run one yourself as a slash comm
 /best-practices-react app/dashboard/page.tsx takes four seconds to load. Find the waterfalls and the bundle bloat.
 ```
 
-The `develop-<stack>` and `review-<stack>` skills extend the generic ones with one stack's specifics. They're written for their agents rather than for running alone.
+The `develop-<stack>` and `review-<stack>` skills extend the generic ones with one stack's specifics, and you can run those as slash commands too — `/review-bun` on the file you just edited, `/develop-rust` for a one-function change. For something small that's the cheaper route, since it stays in your session. The agent is worth it once the work spans several files and needs its own loop of builds and test runs; it also preloads the whole chain, which a skill run alone tells you to read for yourself.
 
 ### MCP servers
 

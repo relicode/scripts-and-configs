@@ -57,7 +57,7 @@ Use this format, emoji markers included:
 Not run. [reviewer, or one per language the change touches] covers this change.
 ```
 
-Name the reviewer the task names, or else the one your agent instructions name if `.claude/agents/` has it, or else the most specific reviewer agent there for the files you changed. Where the change touches more than one language, name one per language, since a reviewer only covers its own. Naming them is all you do: a review is the user's call, made at the points `.claude/rules/subagents.md` describes, so don't start one and don't ask the session to.
+Name the reviewer the task names, or else the one your agent instructions name if `.claude/agents/` has it, or else the most specific reviewer agent there for the files you changed. Where the change touches more than one language, name one per language, since a reviewer only covers its own. Naming them is all you do unless your instructions for this task say otherwise: a review is the user's call, made at the points `.claude/rules/subagents.md` describes. Don't start one on your own initiative, and don't ask the session to — but when the task tells you to review as part of the same pass, do.
 
 If you stopped for open questions before writing code, report only those, each with the options you see, and say that nothing was changed. If you stopped partway, use the full format with the question at the top, and under Review say the change isn't ready for one and what answer you need to continue.
 

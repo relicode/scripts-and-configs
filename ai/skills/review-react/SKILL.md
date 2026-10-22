@@ -7,6 +7,8 @@ description: React review specifics for React web code, the React islands and co
 
 Extends `review-generic` and builds on `review-bun`, whose TypeScript checks apply to React code too: same scope, phases and report, plus the grading below.
 
+Run on its own rather than through an agent, read the skills named above from `.claude/skills/<name>/SKILL.md` before starting: an agent preloads them, a plain session doesn't. For something small that's the cheaper route — the agent is worth it once the work spans several files.
+
 The standards are `.claude/rules/js/react.md`, which loads for `.tsx` and `.jsx` files, and `js/mui.md` where the project uses MUI. Validate the way `.claude/rules/js/lint-and-format.md` describes.
 
 ## How to grade

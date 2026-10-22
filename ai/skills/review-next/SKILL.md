@@ -7,6 +7,8 @@ description: Next.js review specifics. Grades violations of the project's Next.j
 
 Extends `review-generic` and builds on `review-bun` and `review-react`, whose TypeScript and React checks apply to Next.js code too: same scope, phases and report, plus the grading below.
 
+Run on its own rather than through an agent, read the skills named above from `.claude/skills/<name>/SKILL.md` before starting: an agent preloads them, a plain session doesn't. For something small that's the cheaper route — the agent is worth it once the work spans several files.
+
 The standards, the docs to check API usage against and the extra validation steps are all in `.claude/rules/js/next.md`, which loads for the app's files.
 
 ## How to grade

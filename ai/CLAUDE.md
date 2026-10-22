@@ -38,6 +38,16 @@ Each layer states a thing once and the next one points at it. Keeping that strai
 - **Skill** — *the procedure.* `develop-generic` and `review-generic` hold the whole procedure: scope, phases, report format, ground rules. A `develop-<stack>` or `review-<stack>` skill extends it with only what that stack adds — which rules are its standards, which `best-practices-*` guide covers it, and how its violations map onto the review categories. If a stack skill is restating a rule, move the text into the rule.
 - **Reference** — `best-practices-<language>`, a guide of numbered rules with examples, consulted during the procedure. No agent, no procedure.
 - **Agent** — *the role.* A persona, a `skills:` list, and which reviewer covers its output. Nothing a skill could hold.
+
+### Model and effort
+
+Every agent declares `model: inherit`, so it runs on the main conversation's model. Omitting the key resolves to the same model in an ordinary setup, but the explicit value also wins over a `CLAUDE_CODE_SUBAGENT_MODEL` default; `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` overrides it either way.
+
+No agent declares `effort:`, and that's deliberate. The field exists (`low` through `max`) and a value there *overrides the session's level*, so an `effort: high` reviewer would keep running deep in a session its user had set to low — the opposite of letting the user decide what a round is worth. Leaving it out keeps effort following the session. Note that the docs don't actually promise that: an agent with no `effort:` inheriting the session level follows from how the field is described and from nothing else, so don't write it down as a guarantee. If a project wants its reviewers deep whatever the session, `effort:` is the knob, set per project rather than here.
+
+Extended thinking is different again: a subagent inherits the main conversation's thinking configuration and has no per-agent setting.
+
+A skill is usually only content injected into whatever loads it, so it runs on that context's model — but `SKILL.md` frontmatter does accept `model:`, `effort:`, `context: fork` and `agent:`, which change execution. None of these skills uses them, and a stack skill shouldn't: its job is to be loaded by an agent, not to redirect one.
 - **MCP server** — one used by a single agent goes inline in that agent's `mcpServers:`; any other goes in `mcp.json`.
 
 The same rule against restating applies sideways: a `develop-<stack>` and its `review-<stack>` sibling share their standards through the rule, so neither spells out what the other does. The grading scale, the six finding categories and the best-practices formula live in `review-generic` alone, and no stack skill adds a seventh category.
@@ -60,6 +70,15 @@ A reviewer agent re-reads the change, the rules and the surrounding files, so a 
 - No reviewer description says "use proactively". Each one names the moments worth the cost — the user asking, or a commit, push or merge.
 - A developer agent's report ends with a `### Review` section whose body is `Not run.` plus the reviewer that covers the change — one per language where it touches several. It names them and stops there.
 - `rules/subagents.md` states the policy for the main session. Keep these three in step; the eagerness comes back the moment one of them starts telling the session to review.
+
+These are defaults, not prohibitions. A developer agent runs a reviewer when the task it was given asks for one, and a stack skill runs on its own when someone invokes it directly. Both exist to stop the *unprompted* case, so both belong in prose, where "unless you were asked" can be said.
+
+Two frontmatter switches look like they'd enforce this and must not be used for it:
+
+- `disable-model-invocation: true` on a skill *also stops it being preloaded into a subagent* — the preload is skipped with nothing but a debug-log line. Setting it on the stack skills would strip `review-bun` and its siblings out of all twelve agents, which would go unnoticed because the agent's own "a skill is missing" check is self-assessment. It would also break running the skill directly, which is a supported use.
+- `disallowedTools: Agent` on a developer agent removes the capability outright, so the user couldn't get a review in the same pass even by asking for one. `Agent` is the delegation tool (`Task` is its old alias) and subagents can nest three deep by default, so the switch does work — it just enforces the wrong rule.
+
+Note for anything else frontmatter-driven: agent keys are camelCase (`disallowedTools`, `maxTurns`) and skill keys hyphenated (`disallowed-tools`), an unrecognized key is ignored without an error, and frontmatter that fails to parse drops every field while the file still loads. A misspelling is therefore silent, and `claude --debug` is the only way to see it.
 
 ## The stacks
 

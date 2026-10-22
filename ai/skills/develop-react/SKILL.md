@@ -7,6 +7,8 @@ description: React development specifics for React web code, the React islands a
 
 Extends `develop-generic` and builds on `develop-bun`, whose TypeScript points apply to React code too: same scope, procedure and report.
 
+Run on its own rather than through an agent, read the skills named above from `.claude/skills/<name>/SKILL.md` before starting: an agent preloads them, a plain session doesn't. For something small that's the cheaper route — the agent is worth it once the work spans several files.
+
 The standards are `.claude/rules/js/react.md`, which loads for `.tsx` and `.jsx` files, and `js/mui.md` where the project uses MUI. Follow them there rather than looking for a second copy here.
 
 ## What this stack adds

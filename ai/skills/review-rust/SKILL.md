@@ -7,6 +7,8 @@ description: Rust review specifics. Grades violations of the project's Rust rule
 
 Extends `review-generic`: same scope, phases and report, plus the grading below.
 
+Run on its own rather than through an agent, read the skills named above from `.claude/skills/<name>/SKILL.md` before starting: an agent preloads them, a plain session doesn't. For something small that's the cheaper route — the agent is worth it once the work spans several files.
+
 The standards are the project rules `rust.md` and `lint-and-format.md` in `.claude/rules/rust/`. They load for the files in scope, so check against them there and validate the way `lint-and-format.md` describes.
 
 ## How to grade

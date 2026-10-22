@@ -7,6 +7,8 @@ description: TypeScript and Bun development specifics for all TypeScript and Jav
 
 Extends `develop-generic`: same scope, procedure and report.
 
+Run on its own rather than through an agent, read the skills named above from `.claude/skills/<name>/SKILL.md` before starting: an agent preloads them, a plain session doesn't. For something small that's the cheaper route — the agent is worth it once the work spans several files.
+
 The standards are the project rules `typescript.md`, `bun.md` and `lint-and-format.md` in `.claude/rules/js/`. They load for the files you'll touch, so follow them there rather than looking for a second copy here, and validate the way `lint-and-format.md` describes.
 
 ## What this stack adds
