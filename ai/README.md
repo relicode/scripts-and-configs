@@ -84,7 +84,7 @@ Use developer-next to add an /api/health route that returns the app version, the
 @agent-reviewer-react review the search box I just added to packages/ui/src/product-list.tsx. The list re-renders on every keystroke.
 ```
 
-**Reviews happen when you ask for one.** A reviewer re-reads the change, the rules and the files around it, so a round costs roughly what producing the change did — too much to spend after every edit. None of the agents starts one by itself: a developer finishes with a `### Review` section reading "Not run" plus the name of the reviewer that covers its change, and it's yours to run when the work is worth it, typically before a commit that closes a piece of work, before pushing a branch, or before opening or merging a pull request.
+**Reviews happen when you ask for one.** A reviewer re-reads the change, the rules and the files around it, so a round costs roughly what producing the change did — too much to spend after every edit. None of the agents starts one by itself: a developer finishes with a `### Review` section reading "Not run" plus the name of the reviewer that covers its change — or, where you asked for the review in the task itself, what that round found — and it's yours to run when the work is worth it, typically before a commit that closes a piece of work, before pushing a branch, or before opening or merging a pull request.
 
 ```text
 @agent-reviewer-bun review my uncommitted changes

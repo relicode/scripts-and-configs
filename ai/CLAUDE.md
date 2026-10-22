@@ -68,7 +68,7 @@ That is also why `develop-generic` and `review-generic` must keep telling the ag
 A reviewer agent re-reads the change, the rules and the surrounding files, so a round costs about what producing the change did. Nothing in the set may start one by itself:
 
 - No reviewer description says "use proactively". Each one names the moments worth the cost — the user asking, or a commit, push or merge.
-- A developer agent's report ends with a `### Review` section whose body is `Not run.` plus the reviewer that covers the change — one per language where it touches several. It names them and stops there.
+- A developer agent's report ends with a `### Review` section whose body is `Not run.` plus the reviewer that covers the change — one per language where it touches several. It names them and stops there, unless the task it was given asked for the review, in which case that section reports the round instead.
 - `rules/subagents.md` states the policy for the main session. Keep these three in step; the eagerness comes back the moment one of them starts telling the session to review.
 
 These are defaults, not prohibitions. A developer agent runs a reviewer when the task it was given asks for one, and a stack skill runs on its own when someone invokes it directly. Both exist to stop the *unprompted* case, so both belong in prose, where "unless you were asked" can be said.

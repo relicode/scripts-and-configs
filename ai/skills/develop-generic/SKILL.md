@@ -54,10 +54,10 @@ Use this format, emoji markers included:
 [checks, tests or code you didn't run, and why; or "none"]
 
 ### Review
-Not run. [reviewer, or one per language the change touches] covers this change.
+[`Not run.` and the reviewer that covers this change, one per language where it touches several — or, where your task told you to run the review, which reviewer ran, what it found and what you fixed]
 ```
 
-Name the reviewer the task names, or else the one your agent instructions name if `.claude/agents/` has it, or else the most specific reviewer agent there for the files you changed. Where the change touches more than one language, name one per language, since a reviewer only covers its own. Naming them is all you do unless your instructions for this task say otherwise: a review is the user's call, made at the points `.claude/rules/subagents.md` describes. Don't start one on your own initiative, and don't ask the session to — but when the task tells you to review as part of the same pass, do.
+Name the reviewer the task names, or else the one your agent instructions name if `.claude/agents/` has it, or else the most specific reviewer agent there for the files you changed. Where the change touches more than one language, name one per language, since a reviewer only covers its own. Naming them is all you do unless your instructions for this task say otherwise: a review is the user's call, made at the points `.claude/rules/subagents.md` describes. Don't start one on your own initiative, and don't ask the session to — but when the task tells you to review as part of the same pass, do, and report that round under Review in place of `Not run.`
 
 If you stopped for open questions before writing code, report only those, each with the options you see, and say that nothing was changed. If you stopped partway, use the full format with the question at the top, and under Review say the change isn't ready for one and what answer you need to continue.
 

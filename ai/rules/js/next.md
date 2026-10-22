@@ -5,7 +5,7 @@ paths:
 
 # Next.js
 
-Applies to code in a Next.js app. In a repository where only part of the tree is that app, these rules stop at that part: a script or a package outside it follows `.claude/rules/js/bun.md` instead, including its preference for Bun's built-ins, which the "Runtime" rule below rules out only for the app itself.
+Applies to code in a Next.js app. In a repository where only part of the tree is that app, these rules stop at that part. Code that Next.js doesn't run follows `.claude/rules/js/bun.md` instead, even inside the app's folder: a script, a `bun test` suite, or a package with its own `package.json`. That includes bun.md's preference for Bun's built-ins, which the "Runtime" rule below rules out only for the app itself. A module the app imports is the app's code, though, even where a script imports it too.
 
 The React rules in `.claude/rules/js/react.md` apply to its components as well.
 

@@ -6,7 +6,7 @@ paths:
 
 # Astro
 
-Applies to code in an Astro project — the `.astro` files and the `.ts` and `.tsx` modules beside them, since actions, endpoints, the content config and the islands are not `.astro` files. In a repository where only part of the tree is an Astro site, these rules stop at that part; scripts and packages outside it follow `.claude/rules/js/bun.md` instead.
+Applies to code in an Astro project — the `.astro` files and the `.ts` and `.tsx` modules beside them, since actions, endpoints, the content config and the islands are not `.astro` files. In a repository where only part of the tree is an Astro site, these rules stop at that part. Code that Astro doesn't run follows `.claude/rules/js/bun.md` instead, even inside the site's folder: a script, a `bun test` suite, or a package with its own `package.json`. That includes bun.md's preference for Bun's built-ins, which the "Runtime" rule below rules out only for the site itself. A module the site imports is the site's code, though, even where a script imports it too.
 
 The TypeScript rules in `.claude/rules/js/typescript.md` apply to `.astro` frontmatter, and the React rules in `.claude/rules/js/react.md` to React islands.
 

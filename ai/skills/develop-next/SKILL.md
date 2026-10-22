@@ -9,7 +9,7 @@ Extends `develop-generic` and builds on `develop-bun` and `develop-react`, whose
 
 Run on its own rather than through an agent, read the skills named above from `.claude/skills/<name>/SKILL.md` before starting: an agent preloads them, a plain session doesn't. For something small that's the cheaper route — the agent is worth it once the work spans several files.
 
-The standards, the docs to read first and the extra validation steps are all in `.claude/rules/js/next.md`, which loads for the app's files. Follow them there rather than looking for a second copy here.
+The standards, the docs to read first and the extra validation steps are all in `.claude/rules/js/next.md`, which loads for every TypeScript and JavaScript file and applies only to the app's code. Follow them there rather than looking for a second copy here.
 
 ## What this stack adds
 
