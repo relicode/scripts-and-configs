@@ -14,7 +14,7 @@ Personal dotfiles + scripts, checked out at `~/etc/scripts-and-configs`. It is *
 - `bin/common/` and `bin/linux/` — scripts on `$PATH`. `linux/` holds Linux-only scripts (e.g. shadowing system `cal`); cross-platform stuff goes in `common/`.
 - `helpers/` — small multi-file projects with their own toolchains (`deduper` is a Bun + Ink/React TUI that wraps `fclones`; `mpv-saver` is a two-runtime project; `letsencrypt` is a wrapper around certbot). Treat each as its own project.
 - `submodules/` — vendored upstreams (`oh-my-tmux`, `ufw-docker`, `mpv-cut`). Don't edit; update with the submodule command below.
-- `agents/` — skillster, the Claude Code setup (rules, skills, agents and MCP servers) that its installer copies into other projects. A Bun project with its own `CLAUDE.md`; run its commands from `agents/`.
+- `ai/` — a base Claude Code setup (rules, skills, agents and MCP servers) copied into other projects by hand. Markdown and one JSON file, no build; it has its own `CLAUDE.md` with the naming and authoring conventions.
 
 ## Common commands
 

@@ -1,2 +1,10 @@
 .DS_Store
 node_modules
+
+# environment files
+.env
+.env.*
+!.env.example
+
+# personal Claude Code files
+CLAUDE.local.md
