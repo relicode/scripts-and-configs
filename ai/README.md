@@ -29,7 +29,7 @@ Each stack builds on the ones above it in the table, so a Next.js project keeps 
 
 | Stack | Rules | Agents | Skills | MCP servers |
 | --- | --- | --- | --- | --- |
-| Generic — always | `clean-code.md`, `scripts.md`, `shell.md`, `subagents.md` | `developer-generic`, `reviewer-generic` | `develop-generic`, `review-generic` | `context7` |
+| Generic — always | `clean-code.md`, `git.md`, `scripts.md`, `shell.md`, `subagents.md` | `developer-generic`, `reviewer-generic` | `develop-generic`, `review-generic` | `context7` |
 | Bun / TypeScript | `js/typescript.md`, `js/bun.md`, `js/lint-and-format.md` | `developer-bun`, `reviewer-bun` | `develop-bun`, `review-bun`, `best-practices-bun` | — |
 | React | `js/react.md` | `developer-react`, `reviewer-react` | `develop-react`, `review-react`, `best-practices-react` | `chrome-devtools` |
 | Next.js | `js/next.md` | `developer-next`, `reviewer-next` | `develop-next`, `review-next` | `next-devtools` |
@@ -53,7 +53,7 @@ Leaving extra rows in mostly costs context, except for MCP servers: every one in
 
 ### Rules
 
-Nothing to do. `clean-code.md`, `scripts.md`, `shell.md` and `subagents.md` load in every session; the language rules load when Claude works on matching files. `/context` lists what a session loaded.
+Nothing to do. `clean-code.md`, `git.md`, `scripts.md`, `shell.md` and `subagents.md` load in every session; the language rules load when Claude works on matching files. `/context` lists what a session loaded.
 
 The rules are where the standards live — the agents and skills point at them instead of carrying their own copies, so editing a rule changes what both the developers and the reviewers hold you to.
 

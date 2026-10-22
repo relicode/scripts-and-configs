@@ -64,5 +64,4 @@ If you stopped for open questions before writing code, report only those, each w
 ## Ground rules
 
 - Run the project's checks and scripts only when `.claude/rules/clean-code.md` says that's safe.
-- Never commit or push.
-- Never add Claude attribution.
+- Committing and attribution follow `.claude/rules/git.md`: leave the commit to the user, and never sign the work as Claude.

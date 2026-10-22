@@ -67,7 +67,7 @@ Each stack layers on the ones before it, so `developer-next` preloads `develop-b
 
 | Stack | Rules | Developer | Reviewer | Reference skills | MCP servers |
 | --- | --- | --- | --- | --- | --- |
-| Generic | `clean-code.md`, `scripts.md`, `shell.md`, `subagents.md` | `developer-generic` | `reviewer-generic` | — | `context7` |
+| Generic | `clean-code.md`, `git.md`, `scripts.md`, `shell.md`, `subagents.md` | `developer-generic` | `reviewer-generic` | — | `context7` |
 | Bun / TypeScript | `js/typescript.md`, `js/bun.md`, `js/lint-and-format.md` | `developer-bun` | `reviewer-bun` | `best-practices-bun` | — |
 | React | `js/react.md` | `developer-react` | `reviewer-react` | `best-practices-react` | `chrome-devtools` |
 | Next.js | `js/next.md` | `developer-next` | `reviewer-next` | — | `next-devtools` |
