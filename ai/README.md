@@ -113,7 +113,7 @@ Everything works in an ordinary `claude` session in your project.
 
 ### Rules
 
-Nothing to do. `clean-code.md`, `scripts.md` and `shell.md` load in every session, and the language rules load when Claude works on matching files, such as `*.ts` or `package.json`. Claude follows them when it writes code, and the agents check work against them. `/context` lists the rule files a session loaded at startup.
+Nothing to do. `clean-code.md`, `scripts.md`, `shell.md` and `subagents.md` load in every session, and the language rules load when Claude works on matching files, such as `*.ts` or `package.json`. Claude follows them when it writes code, and the agents check work against them. `/context` lists the rule files a session loaded at startup.
 
 ### Agents
 

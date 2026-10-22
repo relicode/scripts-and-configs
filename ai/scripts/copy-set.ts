@@ -50,7 +50,7 @@ const TAB_INDENT = '  '
 
 export const LANGUAGE_SETS: Record<SetName, LanguageSet> = {
   core: {
-    rules: ['clean-code.md', 'scripts.md', 'shell.md'],
+    rules: ['clean-code.md', 'scripts.md', 'shell.md', 'subagents.md'],
     skills: ['review-generic', 'develop-generic'],
     agents: ['reviewer'],
     mcpServers: ['context7'],
