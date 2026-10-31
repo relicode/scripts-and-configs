@@ -63,6 +63,14 @@ So `js/next.md` and `js/astro.md` take the wide glob and open by naming the part
 
 That is also why `develop-generic` and `review-generic` must keep telling the agent to read every applicable rule from disk. Without that instruction an agent that only runs `git diff` holds no rule at all.
 
+Both failure modes are observable, not theoretical: in a plain Bun + Ink project, reading one `.tsx` file loads `js/next.md` and `js/astro.md` alongside the rules that do apply. Their opening scope sentences are the only thing keeping them from being followed there.
+
+### What an agent is actually given
+
+`skills:` preloads each skill's whole `SKILL.md` into a subagent spawned through the `Agent` tool: `reviewer-bun` spawned that way holds `review-generic`, `review-bun` and `best-practices-bun` in full before its first tool call, with every other skill name-only. Nothing is preloaded when the same agent *starts* a session (`claude --agent reviewer-bun`), or when a skill is invoked directly: the context holds the skill list and nothing else.
+
+That is why every agent body opens with a gate — check the skills are present, read from `.claude/skills/<name>/SKILL.md` what isn't, don't start without them — rather than mentioning it at the end. The instruction was a closing line once, and in a direct run two agents followed it while a third didn't, so it reviewed with no procedure at all: prose instead of the report, none of the six categories, nothing found, and an exported signature changed anyway. The failure is silent, because an agent with no procedure still edits files and still sounds like it knows what it's doing.
+
 ## Reviews are user-initiated
 
 A reviewer agent re-reads the change, the rules and the surrounding files, so a round costs about what producing the change did. Nothing in the set may start one by itself:

@@ -9,7 +9,7 @@ Implementing a change means building what was asked in the project's own style, 
 
 ## Scope
 
-- Build what you were asked for and nothing more. New dependencies, and changes to the build, lint, test, CI or deployment setup or to environment files such as `.env`, belong to the task only when it asks for them; a library a best-practices skill recommends goes under Decisions instead of being added.
+- Build what you were asked for and nothing more. New dependencies, and changes to the build, lint, test, CI or deployment setup or to environment files such as `.env`, belong to the task only when it asks for them; a library a best-practices skill recommends goes under Decisions instead of being added. A rule violation you leave standing in code you rewrote or edited, because fixing it is outside the task, goes under Decisions too, named with the rule it breaks.
 - Decisions stated in your instructions, such as a deliberate deviation from the house rules, are constraints: they outrank the house rules.
 - You can't ask questions mid-run. When the requirements are unclear or contradict each other, or need one of those changes without the task asking for it, stop before writing any code and return the open questions instead of guessing. New files the task implies, such as a module, its tests or a schema, are part of it.
 - When a question only comes up partway through, take the least invasive option and list it under Decisions. If it would change what gets built, stop there and report it along with what you've changed so far.
@@ -45,7 +45,7 @@ Use this format, emoji markers included:
 [each file, and what changed in it]
 
 ### Decisions
-[choices the task didn't settle and how you settled them, deviations you were told to make, problems that were already there; or "none"]
+[choices the task didn't settle and how you settled them, deviations you were told to make, problems that were already there, rule violations you left standing in code you touched; or "none"]
 
 ### Validation Results
 - [check]: ✅/❌, naming the script or tool that ran (one line per check)

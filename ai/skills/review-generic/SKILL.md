@@ -47,13 +47,13 @@ Grade severity by impact:
 
 ### Performance rules from a best-practices skill
 
-Where a `best-practices-<language>` skill is in your context, check the change against its rules too; the stack skill names the one that covers it, and the full rules, with incorrect and correct examples, are in that skill's `references/` folder. Record what you find under **Bad practices**, graded on the scale above so 🔴 means the same thing in every report: a CRITICAL or HIGH rule broken on a real code path is 🟠, anything lower is 🟡. A fix that would need a new dependency goes under Decisions to confirm instead of being made.
+Where a `best-practices-<language>` skill is in your context, check the change against its rules too; the stack skill names the one that covers it, and the full rules, with incorrect and correct examples, are in that skill's `references/` folder. Record what you find under **Bad practices**, graded on the scale above so 🔴 means the same thing in every report: a CRITICAL or HIGH rule broken on a real code path is 🟠, anything lower is 🟡. A fix that would need a new dependency goes under Decisions to confirm instead of being made, while the finding itself stays under Findings.
 
 ## Phase 2: Fix and validate
 
 Start only once the review is complete.
 
-1. Fix every finding: 🔴 first, then 🟠, then 🟡.
+1. Fix every finding: 🔴 first, then 🟠, then 🟡. A finding you can't fix is still a finding: where the fix would need a new dependency, a change to the toolchain or a decision the code doesn't settle, keep it under Findings at its grade and put the unmade fix under Decisions to confirm. The heading's counts cover every finding, fixed or not.
 2. Validate through the project's own checks: format, lint (type-checks included) and tests. The project's lint-and-format rule for the language says how, where there is one; other ecosystems have equivalent task targets (Gradle, Make, just).
 3. The checks must pass for the files in scope. Failures elsewhere that were already there go under Decisions to confirm.
 4. If the project defines no checks, run only tools it already configures, on the files in scope, and install nothing. If there are none, say that nothing could be validated.
@@ -79,7 +79,7 @@ Use this format, emoji markers included:
 [each fix]
 
 ### Decisions to confirm
-[choices the code didn't settle, problems that were already there, setup gaps; or "none"]
+[choices the code didn't settle, fixes you left unmade and why, problems that were already there, setup gaps; or "none"]
 
 ### Validation Results
 - [check]: ✅/❌ or N/A, naming the script or tool that ran (one line per check)
