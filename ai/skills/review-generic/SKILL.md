@@ -53,7 +53,7 @@ Where a `best-practices-<language>` skill is in your context, check the change a
 
 Start only once the review is complete.
 
-1. Fix every finding: 🔴 first, then 🟠, then 🟡. A finding you can't fix is still a finding: where the fix would need a new dependency, a change to the toolchain or a decision the code doesn't settle, keep it under Findings at its grade and put the unmade fix under Decisions to confirm. The heading's counts cover every finding, fixed or not.
+1. Fix every finding: 🔴 first, then 🟠, then 🟡. A finding you can't fix is still a finding: where the fix would need a new dependency, a change to the toolchain, a rename or signature change to something exported, or a decision the code doesn't settle, keep it under Findings at its grade, and under Decisions to confirm, name it and say what the fix waits on. The heading's counts cover every finding, fixed or not.
 2. Validate through the project's own checks: format, lint (type-checks included) and tests. The project's lint-and-format rule for the language says how, where there is one; other ecosystems have equivalent task targets (Gradle, Make, just).
 3. The checks must pass for the files in scope. Failures elsewhere that were already there go under Decisions to confirm.
 4. If the project defines no checks, run only tools it already configures, on the files in scope, and install nothing. If there are none, say that nothing could be validated.
