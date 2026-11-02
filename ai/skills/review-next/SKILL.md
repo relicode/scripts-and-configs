@@ -7,7 +7,7 @@ description: Next.js review specifics. Grades violations of the project's Next.j
 
 Extends `review-generic` and builds on `review-bun` and `review-react`, whose TypeScript and React checks apply to Next.js code too: same scope, phases and report, plus the grading below.
 
-When run on its own rather than through an agent, read the skills named above from `.claude/skills/<name>/SKILL.md` before starting: an agent preloads them, a plain session doesn't. For something small that's the cheaper route — the agent is worth it once the work spans several files.
+**Before you read any code**, check that `review-generic`, `review-bun`, `review-react`, `best-practices-bun` and `best-practices-react` are in your context in full, not just names in a skill list: a subagent normally has them preloaded, but a plain session or one started with `claude --agent` has only their names. For each one that's missing, read `.claude/skills/<name>/SKILL.md`; one already in your context needs no second read. If the file isn't there either, stop and name the missing skill. Don't start the review without them. Running this skill on its own is the cheaper route for something small — the agent is worth it once the work spans several files.
 
 The standards, the docs to check API usage against and the extra validation steps are all in `.claude/rules/js/next.md`, which loads for every TypeScript and JavaScript file and applies only to the app's code.
 

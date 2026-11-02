@@ -71,6 +71,10 @@ Both failure modes are observable, not theoretical: in a plain Bun + Ink project
 
 That is why every agent body opens with a gate — check the skills are present, read from `.claude/skills/<name>/SKILL.md` what isn't, don't start without them — rather than mentioning it at the end. The instruction was a closing line once, and in a direct run two agents followed it while a third didn't, so it reviewed with no procedure at all: prose instead of the report, none of the six categories, nothing found, and an exported signature changed anyway. The failure is silent, because an agent with no procedure still edits files and still sounds like it knows what it's doing.
 
+The gate names the case it guards against, `claude --agent`. It used to say "a session that invoked you directly", which describes a subagent the main session spawned just as well. The gates that list several skills also say that one already in context needs no second read. That's a precaution: `develop-generic` and `review-generic` tell the agent to re-read rules from disk even when a copy is in context, though a subagent tested without the clause didn't re-read its skills either.
+
+Stack skills carry the same gate, because a skill invoked directly gets nothing preloaded, and there the gate's shape matters more than its wording. The sentence it replaced opened with a condition, "When run on its own rather than through an agent, read…". Tested on Sonnet with a small change, a session often skipped it, whatever came next: pointing at the agent's `skills:` list, `/review-next` read no skill at all and answered in prose, and naming the skills in the sentence still left most of them unread. The unconditional gate got them read. Opus read them under every wording. The gate names the skills instead of pointing at the agent's list because that indirection is what failed, so the list now lives in two gates as well as in `skills:`. A skill that goes unread fails silently here too: `review-generic` skips the performance rules without a word when no `best-practices-*` skill is in context, and `develop-generic` reaches one only through the reviewer it names.
+
 ## Reviews are user-initiated
 
 A reviewer agent re-reads the change, the rules and the surrounding files, so a round costs about what producing the change did. Nothing in the set may start one by itself:
@@ -123,6 +127,6 @@ A vendored skill keeps its upstream name and its files unmodified so it can be r
 
 ## Working here
 
-- Changing an agent's `skills:` means checking that each skill exists and that its description's "preloaded by" list still names the right agents. There's no linter for it any more — grep.
+- Changing an agent's `skills:` means checking that each skill exists and that its description's "preloaded by" list still names the right agents, and updating the list in that agent's gate and in its stack skill's gate. There's no linter for it any more — grep.
 - Before adding text to a stack skill, check whether it's a standard. If it is, it goes in the rule, and the skill gets a pointer. That check is the only thing keeping the stack skills short.
 - Test agents and skills on a throwaway copy outside this repo: the reviewers edit what they review.

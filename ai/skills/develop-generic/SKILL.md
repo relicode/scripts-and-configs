@@ -25,7 +25,7 @@ Implementing a change means building what was asked in the project's own style, 
 - When the project has docs MCP servers, such as context7, astro-docs or mui-mcp, look up library and framework APIs there rather than from memory.
 - Add or update tests for the change where the project has tests, with its runner and layout. If it has none, say so instead of setting them up. A test you add for a bug fix has to fail without the fix: undo the fix, run the test and see it fail, then restore the fix.
 - Hold new code to these, whatever the stack: a server entry point anyone can call directly — an action, route handler or endpoint — authenticates its caller, authorizes the action and validates its input itself, rather than relying on the page, layout or middleware that normally reaches it; a redirect target or `Location` header comes from an allowlist, not from user input; untrusted data reaching HTML, a shell, a query or a path is escaped or validated at that boundary; and no secret reaches the browser, which a build arranges for any value behind a public environment prefix and for anything handed to code that runs there.
-- Apply the preloaded best-practices skills to the code they cover. When the reviewer you'll name preloads a best-practices skill you don't have (its `skills:` in `.claude/agents/`), read that skill's `SKILL.md` and apply it too: the reviewer checks your change against it.
+- Apply the best-practices skills in your context to the code they cover. When the reviewer you'll name preloads a best-practices skill you don't have (its `skills:` in `.claude/agents/`), read that skill's `SKILL.md` and apply it too: the reviewer checks your change against it.
 
 ## Validating
 

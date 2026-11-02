@@ -7,7 +7,7 @@ description: Next.js development specifics for the App Router, server and client
 
 Extends `develop-generic` and builds on `develop-bun` and `develop-react`, whose TypeScript and React points apply to Next.js code too: same scope, procedure and report.
 
-When run on its own rather than through an agent, read the skills named above from `.claude/skills/<name>/SKILL.md` before starting: an agent preloads them, a plain session doesn't. For something small that's the cheaper route — the agent is worth it once the work spans several files.
+**Before you change any code**, check that `develop-generic`, `develop-bun`, `develop-react`, `best-practices-bun` and `best-practices-react` are in your context in full, not just names in a skill list: a subagent normally has them preloaded, but a plain session or one started with `claude --agent` has only their names. For each one that's missing, read `.claude/skills/<name>/SKILL.md`; one already in your context needs no second read. If the file isn't there either, stop and name the missing skill. Don't start the work without them. Running this skill on its own is the cheaper route for something small — the agent is worth it once the work spans several files.
 
 The standards, the docs to read first and the extra validation steps are all in `.claude/rules/js/next.md`, which loads for every TypeScript and JavaScript file and applies only to the app's code. Follow them there rather than looking for a second copy here.
 
